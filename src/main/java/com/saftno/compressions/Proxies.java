@@ -19,7 +19,7 @@
 
         //==================================================================================
 
-            public <T extends Blocks.Stem> void registerBlockRenderer(T block ) {
+            <T extends Blocks.Stem> void registerBlockRenderer(T block ) {
             //------------------------------------------------------------------------------
 
             //------------------------------------------------------------------------------
@@ -33,7 +33,7 @@
 
         //==================================================================================
 
-            public <T extends Blocks.Stem> void registerBlockRenderer( T block ) {
+            <T extends Blocks.Stem> void registerBlockRenderer( T block ) {
             //------------------------------------------------------------------------------
 
                 Item item = block.getAsItem();

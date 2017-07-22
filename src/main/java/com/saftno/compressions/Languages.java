@@ -7,18 +7,21 @@
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.resources.LanguageManager;
     import net.minecraft.item.ItemStack;
+    import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
     import org.apache.commons.io.IOUtils;
     import org.apache.commons.lang3.StringUtils;
 
 //==========================================================================================
 
-    import java.io.*;
-    import java.nio.file.*;
+    import java.io.IOException;
+    import java.io.InputStream;
+    import java.nio.file.FileSystem;
+    import java.nio.file.Files;
 
 //==========================================================================================
 
-    public class Languages {
+    @SuppressWarnings( "WeakerAccess" ) class Languages {
 
     //======================================================================================
 
@@ -27,11 +30,11 @@
 
     //======================================================================================
 
-        public static class Initialization {
+        static class Initialization {
 
         //==================================================================================
 
-            static void Pre( FMLPreInitializationEvent event ) {
+            static void Pre( @SuppressWarnings("unused") FMLPreInitializationEvent event ) {
             //------------------------------------------------------------------------------
 
                 LanguageManager manager = Minecraft.getMinecraft().getLanguageManager();
@@ -56,7 +59,7 @@
 
         }
 
-        public static class Generation {
+        static class Generation {
 
         //==================================================================================
 
@@ -98,7 +101,11 @@
 
                 //--------------------------------------------------------------------------
 
-                    String name = stack.getRegistryName().getResourcePath();
+                    ResourceLocation loc = stack.getRegistryName();
+
+                    if( null == loc ) return;
+
+                    String name = loc.getResourcePath();
                     String desc = x + "x " + base.getDisplayName();
 
                 //--------------------------------------------------------------------------
@@ -107,7 +114,7 @@
 
                 //--------------------------------------------------------------------------
 
-                    entries += "\n" + "tile." + name + ".name=" + desc;
+                    entries = entries.concat( "\n" + "tile." + name + ".name=" + desc );
 
             //------------------------------------------------------------------------------
                 } }

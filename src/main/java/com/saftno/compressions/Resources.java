@@ -12,14 +12,22 @@
 
 //==========================================================================================
 
-    import java.io.*;
-    import java.nio.file.*;
-    import java.util.*;
+    import java.io.File;
+    import java.io.FileOutputStream;
+    import java.io.IOException;
+    import java.io.OutputStream;
+    import java.nio.file.FileSystem;
+    import java.nio.file.FileSystems;
+    import java.nio.file.Path;
+    import java.nio.file.Paths;
+    import java.nio.file.Files;
+    import java.util.ArrayList;
+    import java.util.Arrays;
     import java.util.stream.Collectors;
 
 //==========================================================================================
 
-    public class Resources {
+    @SuppressWarnings( "WeakerAccess" ) class Resources {
 
     //======================================================================================
 
@@ -75,7 +83,7 @@
 
         //==================================================================================
 
-            static void Pre( FMLPreInitializationEvent event ) { try {
+            static void Pre(@SuppressWarnings("unused")FMLPreInitializationEvent event){try{
             //------------------------------------------------------------------------------
 
                 String[] files = new File( Base.root + "/mods/" ).list();
@@ -102,8 +110,8 @@
 
             //------------------------------------------------------------------------------
 
-                final byte[] empty = {80 , 75 , 05 , 06 , 00 , 00 , 00 , 00 , 00 , 00 , 00,
-                                      00 , 00 , 00 , 00 , 00 , 00 , 00 , 00 , 00 , 00 , 00};
+                final byte[] empty = {80 , 75 , 5 , 6 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
+                                       0 ,  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 };
 
                 OutputStream zipStream = new FileOutputStream( tmpPath.toFile() );
 
@@ -183,7 +191,7 @@
                 if( null != mod ) mod.close();
                 if( null != tmp ) tmp.close();
 
-                // Dont put tmp.close() near Minecraft.getMinecraft().refreshResources(),
+                // Don't put tmp.close() near Minecraft.getMinecraft().refreshResources(),
                 // as it refreshes before the file IO finishes, you get a broken pack
 
             //------------------------------------------------------------------------------

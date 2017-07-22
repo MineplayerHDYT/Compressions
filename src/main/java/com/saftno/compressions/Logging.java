@@ -20,20 +20,20 @@
 
 //==========================================================================================
 
-    class Logging {
+    @SuppressWarnings( { "WeakerAccess" , "unused" } ) class Logging {
 
     //======================================================================================
 
-        static private File LOGFile;
-        static private Logger LOG;
+        static File   LOGFile;
+        static Logger LOG;
 
     //======================================================================================
 
-        public static class Initialization {
+        static class Initialization {
 
         //==================================================================================
 
-            static void Pre( FMLPreInitializationEvent event ) {
+            static void Pre( @SuppressWarnings("unused") FMLPreInitializationEvent event ) {
             //------------------------------------------------------------------------------
 
                 LOGFile = new File( Base.root + "/logs/Compressions.txt" );

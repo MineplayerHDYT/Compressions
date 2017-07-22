@@ -17,6 +17,7 @@
 
 //==========================================================================================
 
+    @SuppressWarnings( { "WeakerAccess" , "CanBeFinal" } )
     @Mod( modid   = Base.modId   , dependencies = "after:*" ,
           name    = Base.name    , acceptedMinecraftVersions = "[1.12]"  ,
           version = Base.version ) @Mod.EventBusSubscriber public class Base {
@@ -40,8 +41,8 @@
 
     //======================================================================================
 
-        static String          root = System.getProperty("user.dir");
-        static private boolean once = false;
+        static String  root = System.getProperty("user.dir");
+        static boolean once = false;
 
     //======================================================================================
     // Initialization

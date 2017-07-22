@@ -6,7 +6,6 @@
 
     import net.minecraft.block.Block;
     import net.minecraft.block.material.Material;
-    import net.minecraft.client.Minecraft;
     import net.minecraft.creativetab.CreativeTabs;
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemBlock;
@@ -21,11 +20,15 @@
 
 //==========================================================================================
 
+    import org.jetbrains.annotations.NotNull;
+
+//==========================================================================================
+
     import java.util.ArrayList;
 
 //==========================================================================================
 
-    public class Blocks {
+    @SuppressWarnings( "WeakerAccess" ) class Blocks {
 
     //======================================================================================
 
@@ -37,7 +40,7 @@
 
         //==================================================================================
 
-            static void Pre( FMLPreInitializationEvent event ) {
+            static void Pre( @SuppressWarnings("unused") FMLPreInitializationEvent event ) {
             //------------------------------------------------------------------------------
 
                 blocks = new ArrayList<>();
@@ -94,7 +97,7 @@
 
         //==================================================================================
 
-            static void Models( ModelRegistryEvent event ) {
+            static void Models( @SuppressWarnings("unused") ModelRegistryEvent event ) {
             //------------------------------------------------------------------------------
 
                 for( Stem block : blocks ) { Base.proxy.registerBlockRenderer( block ); }
@@ -114,7 +117,7 @@
 
         //==================================================================================
 
-            static NonNullList<ItemStack> getVariants( String ID ) {
+            @NotNull static NonNullList<ItemStack> getVariants( String ID ) {
             //------------------------------------------------------------------------------
                 NonNullList<ItemStack> items = NonNullList.create();
             //------------------------------------------------------------------------------
@@ -148,14 +151,18 @@
 
             //------------------------------------------------------------------------------
 
-                item.getSubItems( item.getCreativeTab() , items );
+                CreativeTabs tab = item.getCreativeTab();
+
+                if( null == tab ) tab = CreativeTabs.CREATIVE_TAB_ARRAY[0];
+
+                item.getSubItems( tab , items );
 
             //------------------------------------------------------------------------------
                 return items;
             //------------------------------------------------------------------------------
             }
 
-            static Compressed getCompressed( int stage , ItemStack itemStack ) {
+            @NotNull static Compressed getCompressed( int stage , ItemStack itemStack ) {
             //------------------------------------------------------------------------------
 
                 Item  item  = itemStack.getItem();
@@ -163,7 +170,7 @@
 
             //------------------------------------------------------------------------------
 
-                Material material = Material.LEAVES;
+                Material material;
 
                 try { material = block.getBlockState().getBaseState().getMaterial(); }
                 catch ( NullPointerException e ) { material = Material.LEAVES; }
@@ -225,12 +232,20 @@
 
         //==================================================================================
 
-            Stem( Material material , String name ) {
+            Stem( int level , Material material , ItemStack item ) {
             //------------------------------------------------------------------------------
                 super( material );
             //------------------------------------------------------------------------------
 
-                this.name = name;
+                ResourceLocation loc = item.getItem().getRegistryName();
+
+                if( null == loc ) return;
+
+                this.name = loc.getResourceDomain() + '_' + loc.getResourcePath() + '_'
+                          + item.getMetadata() + '_' + level + 'x';
+
+            //------------------------------------------------------------------------------
+
                 this.item = new ItemBlock( this );
 
             //------------------------------------------------------------------------------
@@ -260,10 +275,7 @@
 
             Compressed( int level , Material material , ItemStack item ) {
             //------------------------------------------------------------------------------
-                super( material, item.getItem().getRegistryName().getResourceDomain() + '_'
-                                 + item.getItem().getRegistryName().getResourcePath() + '_'
-                                 + item.getMetadata() + '_'
-                                 + level + 'x' );// eg. minecraft_sapling_2_3x
+                super( level , material , item );
             //------------------------------------------------------------------------------
 
                 this.stem = item;

@@ -2,7 +2,7 @@
 {
   "modid": "compressions",
   "name": "Compressions",
-  "description": "Adds the abilitiy to have compressed blocks of anything",
+  "description": "Adds the ability to have compressed blocks of anything",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",

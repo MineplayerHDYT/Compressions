@@ -11,19 +11,19 @@
     import net.minecraft.item.crafting.ShapedRecipes;
     import net.minecraft.item.crafting.ShapelessRecipes;
     import net.minecraft.util.NonNullList;
+    import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+    import org.jetbrains.annotations.NotNull;
 
 //==========================================================================================
 
     import java.io.File;
-    import java.io.IOException;
-    import java.io.OutputStream;
-    import java.nio.file.*;
+    import java.nio.file.FileSystem;
     import java.util.ArrayList;
 
 //==========================================================================================
 
-    public class Recipes {
+    @SuppressWarnings("WeakerAccess") class Recipes {
 
     //======================================================================================
 
@@ -36,7 +36,7 @@
 
         //==================================================================================
 
-            static void Pre( FMLPreInitializationEvent event ) {
+            static void Pre(@SuppressWarnings("unused") FMLPreInitializationEvent event ) {
             //------------------------------------------------------------------------------
 
                 compressing = String.join( "\n" , new String[] {
@@ -82,11 +82,15 @@
 
         //==================================================================================
 
-            static ArrayList<IRecipe> Compression() {
+            @NotNull static ArrayList<IRecipe> Compression() {
             //------------------------------------------------------------------------------
 
                 boolean ready = true;
                 File[] mods = new File( Base.root + "/resourcepacks/" ).listFiles();
+
+            //------------------------------------------------------------------------------
+
+                if( null == mods ) return new ArrayList<>();
 
             //------------------------------------------------------------------------------
                 for( File file : mods ) { if( file.getName().contains( "Compressions" ) ) {
@@ -139,9 +143,12 @@
                     int w = 3;
                     int h = 3;
 
-                    ShapedRecipes recipe = new ShapedRecipes( group, w, h, grid, result );
+                    ShapedRecipes    recipe = new ShapedRecipes(group, w, h, grid, result);
+                    ResourceLocation loc    = stack.getRegistryName();
 
-                    recipe.setRegistryName(stack.getRegistryName().toString() +"_"+ group);
+                    if( null == loc ) continue;
+
+                    recipe.setRegistryName( loc.toString() + "_" + group );
 
                     recipes.add( recipe );
 
@@ -152,11 +159,13 @@
             //------------------------------------------------------------------------------
             }
 
-            static ArrayList<IRecipe> Decompression() {
+            @NotNull static ArrayList<IRecipe> Decompression() {
             //------------------------------------------------------------------------------
 
                 boolean ready = true;
                 File[] mods = new File( Base.root + "/resourcepacks/" ).listFiles();
+
+                if( null == mods ) return new ArrayList<>();
 
             //------------------------------------------------------------------------------
                 for( File file : mods ) { if( file.getName().contains( "Compressions" ) ) {
@@ -205,8 +214,11 @@
                     String group = "decompressing";
 
                     ShapelessRecipes recipe = new ShapelessRecipes( group , result , grid );
+                    ResourceLocation  loc   = stack.getRegistryName();
 
-                    recipe.setRegistryName(stack.getRegistryName().toString() +"_"+ group);
+                    if( null == loc ) continue;
+
+                    recipe.setRegistryName( loc.toString() + "_" + group );
 
                     recipes.add( recipe );
 
@@ -242,9 +254,19 @@
 
                 //--------------------------------------------------------------------------
 
-                    String stemID  = stack.stem.getItem().getRegistryName().toString();
-                    String prevID  = null != prev ? prev .getRegistryName().toString() : "";
-                    String stackID = stack.getRegistryName().toString();
+                    ResourceLocation stemLoc  = stack.stem.getItem().getRegistryName();
+                    ResourceLocation prevLoc  = null != prev ? prev.getRegistryName() :null;
+                    ResourceLocation stackLoc = stack.getRegistryName();
+
+                    if( null == stackLoc ) continue;
+                    if( null == stemLoc ) continue;
+                    if( null == prevLoc && null != prev ) continue;
+
+                //--------------------------------------------------------------------------
+
+                    String stemID  = stemLoc.toString();
+                    String prevID  = null != prev ? prevLoc.toString() : "";
+                    String stackID = stackLoc.toString();
 
                     String stemVarID  = String.valueOf( stem.getMetadata() );
                     String stackVarID = String.valueOf( 0 );

@@ -6,6 +6,7 @@
 
     import net.minecraftforge.common.config.Configuration;
     import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+    import org.jetbrains.annotations.NotNull;
 
 //==========================================================================================
 
@@ -13,12 +14,12 @@
 
 //==========================================================================================
 
-    class Configurations {
+    @SuppressWarnings("WeakerAccess") class Configurations {
 
     //======================================================================================
 
-        private static String        type;
-        private static Configuration file;
+        static String        type;
+        static Configuration file;
 
     //======================================================================================
 
@@ -26,7 +27,7 @@
 
         //==================================================================================
 
-            static void Pre( FMLPreInitializationEvent event ) {
+            static void Pre( @SuppressWarnings("unused") FMLPreInitializationEvent event ) {
             //------------------------------------------------------------------------------
 
                 type = Configuration.CATEGORY_GENERAL;
@@ -44,7 +45,7 @@
 
     //======================================================================================
 
-        static int      getDepth() {
+        static int getDepth() {
         //----------------------------------------------------------------------------------
             file.load();
         //----------------------------------------------------------------------------------
@@ -71,13 +72,17 @@
         //----------------------------------------------------------------------------------
         }
 
-        static String[] getIDs() {
+    //======================================================================================
+
+        @NotNull static String[] getIDs() {
         //----------------------------------------------------------------------------------
             file.load();
         //----------------------------------------------------------------------------------
 
-            String varName = "IDs";
-            String comment = "Use ids like 'minecraft:sapling:3'";
+            String varName = "List of items to have compression. 'minecraft:stone:2' "
+                           + "adds a single stone variant, 'minecraft:stone' adds all "
+                           + "stone varinats";
+            String comment = "Add ids of items to have compression";
 
         //----------------------------------------------------------------------------------
 

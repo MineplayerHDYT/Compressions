@@ -4,18 +4,16 @@
 
 //==========================================================================================
 
+    import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
 //==========================================================================================
 
-    import java.io.File;
-    import java.io.IOException;
-    import java.io.OutputStream;
-    import java.nio.file.*;
+    import java.nio.file.FileSystem;
 
 //==========================================================================================
 
-    class Models {
+    @SuppressWarnings( "WeakerAccess" ) class Models {
 
     //======================================================================================
 
@@ -27,7 +25,7 @@
 
         //==================================================================================
 
-            static void Pre( FMLPreInitializationEvent event ) {
+            static void Pre( @SuppressWarnings("unused") FMLPreInitializationEvent event ) {
             //------------------------------------------------------------------------------
 
                 column = String.join( "\n" , new String[] {
@@ -74,10 +72,13 @@
             //------------------------------------------------------------------------------
 
                     Blocks.Compressed stack = Blocks.Generation.blocks[y][x];
+                    ResourceLocation  loc   = stack.getRegistryName();
+
+                    if( null == loc ) continue;
 
                 //--------------------------------------------------------------------------
 
-                    String tex = stack.getRegistryName().getResourcePath();
+                    String tex = loc.getResourcePath();
                     String json = column.replace( "[TEX]" , tex );
                     String jsonName = "/assets/" +Base.modId+ "/blockstates/" +tex+ ".json";
 

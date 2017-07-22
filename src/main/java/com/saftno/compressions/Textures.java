@@ -11,14 +11,17 @@
     import net.minecraft.client.renderer.texture.TextureMap;
     import net.minecraft.client.shader.Framebuffer;
     import net.minecraft.item.ItemStack;
+    import net.minecraft.util.ResourceLocation;
     import org.apache.commons.io.FileUtils;
+    import org.jetbrains.annotations.NotNull;
     import org.lwjgl.BufferUtils;
     import org.lwjgl.opengl.Display;
     import org.lwjgl.opengl.GL11;
 
+//==========================================================================================
+
     import javax.imageio.ImageIO;
     import java.awt.image.BufferedImage;
-    import java.io.File;
     import java.io.IOException;
     import java.io.InputStream;
     import java.io.OutputStream;
@@ -32,17 +35,17 @@
 
 //==========================================================================================
 
-    public class Textures {
+    class Textures {
 
     //======================================================================================
 
-        public static class Generation {
+        static class Generation {
 
         //==================================================================================
         // Get a lot of pixels
         //==================================================================================
 
-            static int[][] getFileData( FileSystem mod , String name ) { try {
+            @NotNull static int[][] getFileData(FileSystem mod , String name ) { try {
             //------------------------------------------------------------------------------
 
                 String texLoc = null != mod ? "" : Base.root + "/../src/main/resources/";
@@ -53,7 +56,7 @@
 
                 Path path = null != mod ? mod.getPath( texLoc ): Paths.get( texLoc );
 
-                if( !Files.exists( path ) ) return null;
+                if( !Files.exists( path ) ) return new int[1][1];
 
             //------------------------------------------------------------------------------
 
@@ -88,9 +91,9 @@
                 return data;
 
             //------------------------------------------------------------------------------
-            } catch ( IOException e ) { e.printStackTrace(); return null; } }
+            } catch ( IOException e ) { e.printStackTrace(); return new int[1][1]; } }
 
-            static int[][] get2DTexData( ItemStack stack ) {
+            @NotNull static int[][] get2DTexData( ItemStack stack ) {
             //------------------------------------------------------------------------------
 
                 IBakedModel model = Minecraft.getMinecraft()
@@ -218,7 +221,7 @@
             //------------------------------------------------------------------------------
             }
 
-            static int[][] get3DTexData( ItemStack stack ) {
+            @NotNull static int[][] get3DTexData(ItemStack stack ) {
             //------------------------------------------------------------------------------
 
                 IBakedModel model = Minecraft.getMinecraft()
@@ -438,14 +441,14 @@
         // Manipulate a lot of pixels
         //==================================================================================
 
-            static int[][] darkenPixels( int step , int[][] pixels ) {
+            @NotNull static int[][] darkenPixels( int step , int[][] pixels ) {
             //------------------------------------------------------------------------------
 
                 int h = 16;
                 int w = 16;
 
             //------------------------------------------------------------------------------
-                for( int y = 0; y < step && y < h; y++ ) { for( int x = y; x < w - y; x++ ){
+                for( int y = 0; y < step && y < h; y++ ) { for( int x =1+y-1; x<w-y; x++ ){
             //------------------------------------------------------------------------------
 
                     int end = h - y - 1;
@@ -471,7 +474,7 @@
             //------------------------------------------------------------------------------
             }
 
-            static int[][] joinPixels( int[][] under , int[][] above ) {
+            @NotNull static int[][] joinPixels( int[][] under , int[][] above ) {
             //------------------------------------------------------------------------------
 
                 int h = 16;
@@ -525,7 +528,7 @@
         // Save a lot of pixels
         //==================================================================================
 
-            static void saveModelImage( ItemStack stack , String name ) { try {
+            @SuppressWarnings( "unused" ) static void saveModelImage( ItemStack stack , String name ) { try {
             //------------------------------------------------------------------------------
 
                 int[][] data = get3DTexData( stack );
@@ -623,6 +626,10 @@
 
                 int[][] frame = getFileData( mod , "frame" );
 
+                @SuppressWarnings("unused") int[][] mesh = getFileData( mod , "mesh"  );
+
+            //------------------------------------------------------------------------------
+
                 String texLoc = "/assets/" + Base.modId + "/textures/blocks/";
 
                 int L1 = Blocks.Generation.blocks.length;
@@ -633,6 +640,8 @@
             //------------------------------------------------------------------------------
 
                     ItemStack base = Blocks.Generation.blocks[y][1].stem;
+
+                    //saveModelImage( base , base.getDisplayName() );
 
                     int[][] pixels = get2DTexData( base );
 
@@ -651,11 +660,15 @@
                 //--------------------------------------------------------------------------
 
                         Blocks.Compressed stack = Blocks.Generation.blocks[y][x];
+                        ResourceLocation  loc   = stack.getRegistryName();
+
+                        if( null == loc ) continue;
 
                     //----------------------------------------------------------------------
 
-                        String name = stack.getRegistryName().getResourcePath();
+                        String name = loc.getResourcePath();
                         String file = texLoc + name + ".png";
+
 
                         int[][] meshed = darkenPixels( x , joinPixels( backed , pixels ) );
 
