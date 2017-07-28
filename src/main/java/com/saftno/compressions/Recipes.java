@@ -1,46 +1,46 @@
-//==========================================================================================
+//==================================================================================
 
     package com.saftno.compressions;
 
-//==========================================================================================
+//==================================================================================
 
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemStack;
-    import net.minecraft.item.crafting.IRecipe;
-    import net.minecraft.item.crafting.Ingredient;
-    import net.minecraft.item.crafting.ShapedRecipes;
-    import net.minecraft.item.crafting.ShapelessRecipes;
+    import net.minecraft.item.crafting.*;
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-    import org.jetbrains.annotations.NotNull;
 
-//==========================================================================================
+//==================================================================================
 
     import java.io.File;
     import java.nio.file.FileSystem;
     import java.util.ArrayList;
+    import java.util.Arrays;
+    import java.util.Set;
 
-//==========================================================================================
+//==================================================================================
+    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+//==================================================================================
 
-    @SuppressWarnings("WeakerAccess") class Recipes {
+    public class Recipes {
 
-    //======================================================================================
+    //==============================================================================
 
-        static String compressing;
-        static String decompressing;
+        public static String compressing;
+        public static String decompressing;
 
-    //======================================================================================
+    //==============================================================================
 
-        static class Initialization {
+        public static class Initialization {
 
-        //==================================================================================
+        //==========================================================================
 
-            static void Pre(@SuppressWarnings("unused") FMLPreInitializationEvent event ) {
-            //------------------------------------------------------------------------------
+            public static void Pre( FMLPreInitializationEvent event ) {
+            //----------------------------------------------------------------------
 
                 compressing = String.join( "\n" , new String[] {
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
                     "{ 'type'   : 'minecraft:crafting_shaped'      " ,
                     ", 'group'  : 'compressing'                    " ,
                     ", 'pattern': [ '###'                          " ,
@@ -51,250 +51,309 @@
                     ", 'result' : { 'item' : '[CMPR]'              " ,
                     "             , 'data' : 0                     " ,
                     "             , 'count': 1 } }                 " ,
-                //--------------------------------------------------------------------------
-                } );
+                //------------------------------------------------------------------
+                } ).replace( "'" , "\"" );
 
-                compressing = compressing.replace( "'" , "\"" );
-
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 decompressing = String.join( "\n" , new String[] {
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
                     "{ 'type'       : 'minecraft:crafting_shapeless' " ,
                     ", 'group'      : 'decompressing'                " ,
                     ", 'ingredients': [ { 'item': '[CMPR]' } ]       " ,
                     ", 'result'     : { 'item' : '[NONCMPR]'         " ,
                     "	              , 'data' : [VAR]               " ,
                     "	              , 'count': 9 } }               " ,
-                //--------------------------------------------------------------------------
-                } );
+                //------------------------------------------------------------------
+                } ).replace( "'" , "\"" );
 
-                decompressing = decompressing.replace( "'" , "\"" );
-
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
 
         }
 
-        static class Generation {
+        public static class Generation {
 
-        //==================================================================================
+        //==========================================================================
 
-            @NotNull static ArrayList<IRecipe> Compression() {
-            //------------------------------------------------------------------------------
-
-                boolean ready = true;
-                File[] mods = new File( Base.root + "/resourcepacks/" ).listFiles();
-
-            //------------------------------------------------------------------------------
-
-                if( null == mods ) return new ArrayList<>();
-
-            //------------------------------------------------------------------------------
-                for( File file : mods ) { if( file.getName().contains( "Compressions" ) ) {
-            //------------------------------------------------------------------------------
-
-                    ready = false;
-
-            //------------------------------------------------------------------------------
-                } }
-            //------------------------------------------------------------------------------
-
-                if( ready ) return new ArrayList<>();
-
-            //------------------------------------------------------------------------------
-
-                int L1 = Blocks.Generation.blocks.length;
-                int L2 = Configurations.getDepth() + 1;
+            public static ArrayList<IRecipe> Compression() {
+            //----------------------------------------------------------------------
 
                 ArrayList<IRecipe> recipes = new ArrayList<>();
 
-            //------------------------------------------------------------------------------
-                for( int y = 0; y < L1; y++ ) { for( int x = 1; x < L2; x++ ) {
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                if( Blocks.compressions.isEmpty() ) return recipes;
+            //----------------------------------------------------------------------
 
-                    Blocks.Compressed prev  = Blocks.Generation.blocks[y][x - 1];
-                    Blocks.Compressed stack = Blocks.Generation.blocks[y][  x  ];
+                File[] files = new File( Base.root +"/resourcepacks/" ).listFiles();
 
-                    ItemStack stem = stack.stem;
+            //----------------------------------------------------------------------
+                if( null == files ) return recipes;
+            //----------------------------------------------------------------------
 
-                //--------------------------------------------------------------------------
+                ArrayList<File> mods = new ArrayList<>( Arrays.asList( files ) );
+                mods.removeIf( mod -> !mod.getName().contains( "Compressions" ) );
+
+            //----------------------------------------------------------------------
+                if( mods.isEmpty() ) return recipes;
+            //----------------------------------------------------------------------
+
+                Blocks.Compressed prev = Blocks.compressions.get( 0 );
+
+            //----------------------------------------------------------------------
+                for( Blocks.Compressed block : Blocks.compressions ) {
+            //----------------------------------------------------------------------
 
                     NonNullList<Ingredient> grid = NonNullList.create();
 
-                //--------------------------------------------------------------------------
+                    Ingredient iBase = Ingredient.fromStacks( block.stem );
+                    Ingredient iPrev = Ingredient.fromItem( prev.getAsItem() );
+
+                //------------------------------------------------------------------
                     for( int i = 0; i < 9; i++ ) {
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
 
-                        if( 1 == x ) grid.add( Ingredient.fromStacks( stem ) );
-                        if( 1 != x ) grid.add( Ingredient.fromItem( prev.getAsItem() ) );
+                        grid.add( 1 == block.level ? iBase : iPrev );
 
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
                     }
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
 
-                    ItemStack result = new ItemStack( stack , 1 , 0 );
+                    ItemStack res = new ItemStack( block , 1 , 0 );
 
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
 
-                    String group = "compressing";
+                    String gr = "compressing";
                     int w = 3;
                     int h = 3;
 
-                    ShapedRecipes    recipe = new ShapedRecipes(group, w, h, grid, result);
-                    ResourceLocation loc    = stack.getRegistryName();
+                    ShapedRecipes recipe = new ShapedRecipes(gr,w,h,grid,res);
+                    ResourceLocation loc = block.getRegistryName();
 
+                //------------------------------------------------------------------
                     if( null == loc ) continue;
+                //------------------------------------------------------------------
 
-                    recipe.setRegistryName( loc.toString() + "_" + group );
+                    recipe.setRegistryName( loc.toString() + "_" + gr );
 
                     recipes.add( recipe );
 
-            //------------------------------------------------------------------------------
-                } }
-            //------------------------------------------------------------------------------
-                return recipes;
-            //------------------------------------------------------------------------------
+                //------------------------------------------------------------------
+
+                    prev = block;
+
+            //----------------------------------------------------------------------
+                } return recipes;
+            //----------------------------------------------------------------------
             }
 
-            @NotNull static ArrayList<IRecipe> Decompression() {
-            //------------------------------------------------------------------------------
-
-                boolean ready = true;
-                File[] mods = new File( Base.root + "/resourcepacks/" ).listFiles();
-
-                if( null == mods ) return new ArrayList<>();
-
-            //------------------------------------------------------------------------------
-                for( File file : mods ) { if( file.getName().contains( "Compressions" ) ) {
-            //------------------------------------------------------------------------------
-
-                    ready = false;
-
-            //------------------------------------------------------------------------------
-                } }
-            //------------------------------------------------------------------------------
-
-                if( ready ) return new ArrayList<>();
-
-            //------------------------------------------------------------------------------
-
-                int L1 = Blocks.Generation.blocks.length;
-                int L2 = Configurations.getDepth() + 1;
+            public static ArrayList<IRecipe> Decompression() {
+            //----------------------------------------------------------------------
 
                 ArrayList<IRecipe> recipes = new ArrayList<>();
 
-            //------------------------------------------------------------------------------
-                for( int y = 0; y < L1; y++ ) { for( int x = 1; x < L2; x++ ) {
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                if( Blocks.compressions.isEmpty() ) return recipes;
+            //----------------------------------------------------------------------
 
-                    Blocks.Compressed prev  = Blocks.Generation.blocks[y][x - 1];
-                    Blocks.Compressed stack = Blocks.Generation.blocks[y][  x  ];
+                File[] files = new File( Base.root +"/resourcepacks/" ).listFiles();
 
-                    Item stem = stack.stem.getItem();
-                    int  var  = stack.stem.getMetadata();
+            //----------------------------------------------------------------------
+                if( null == files ) return recipes;
+            //----------------------------------------------------------------------
 
-                //--------------------------------------------------------------------------
+                ArrayList<File> mods = new ArrayList<>( Arrays.asList( files ) );
+                mods.removeIf( mod -> !mod.getName().contains( "Compressions" ) );
+
+            //----------------------------------------------------------------------
+                if( mods.isEmpty() ) return recipes;
+            //----------------------------------------------------------------------
+
+                Blocks.Compressed prev = Blocks.compressions.get( 0 );
+
+            //----------------------------------------------------------------------
+                for( Blocks.Compressed block : Blocks.compressions ) {
+            //----------------------------------------------------------------------
+
+                    Item stem = block.stem.getItem();
+                    int  var  = block.stem.getMetadata();
+
+                //------------------------------------------------------------------
 
                     NonNullList<Ingredient> grid = NonNullList.create();
 
-                    grid.add( Ingredient.fromItem( stack.getAsItem() ) );
+                    grid.add( Ingredient.fromItem( block.getAsItem() ) );
 
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
 
                     ItemStack result = null;
 
-                    if( 1 == x ) result = new ItemStack( stem , 9 ,   var   );
-                    if( 1 != x ) result = new ItemStack( prev , 9 , 0 );
+                    if( 1 == block.level ) result = new ItemStack( stem , 9 , var );
+                    if( 1 != block.level ) result = new ItemStack( prev , 9 ,  0  );
 
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
 
-                    String group = "decompressing";
+                    String gr = "decompressing";
 
-                    ShapelessRecipes recipe = new ShapelessRecipes( group , result , grid );
-                    ResourceLocation  loc   = stack.getRegistryName();
+                    ShapelessRecipes recipe = new ShapelessRecipes(gr, result, grid);
+                    ResourceLocation loc = block.getRegistryName();
 
-                    if( null == loc ) continue;
+                //------------------------------------------------------------------
+                    if ( null == loc ) continue;
+                //------------------------------------------------------------------
 
-                    recipe.setRegistryName( loc.toString() + "_" + group );
+                    recipe.setRegistryName(loc.toString() + "_" + gr);
 
                     recipes.add( recipe );
 
-            //------------------------------------------------------------------------------
-                } }
-            //------------------------------------------------------------------------------
-                return recipes;
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                } return recipes;
+            //----------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
 
-            static void JSON() {
-            //------------------------------------------------------------------------------
+            public static ArrayList<Furnace> NonOreFurnace() {
+            //----------------------------------------------------------------------
+
+                ArrayList<Furnace> recipes = new ArrayList<>();
+
+            //----------------------------------------------------------------------
+                if( Blocks.compressions.isEmpty() ) return recipes;
+            //----------------------------------------------------------------------
+                for( Blocks.Compressed block : Blocks.compressions ) {
+            //----------------------------------------------------------------------
+
+                    FurnaceRecipes furnace = FurnaceRecipes.instance();
+                    // compatibility;
+
+                //------------------------------------------------------------------
+
+                    ItemStack      key  = null;
+                    Set<ItemStack> keys = furnace.getSmeltingList().keySet();
+
+                //------------------------------------------------------------------
+                    for( ItemStack entry : keys ) {
+                //------------------------------------------------------------------
+
+                        String eName = Blocks.Stem.getItemFullName( entry );
+                        String sName = Blocks.Stem.getItemFullName( block.stem );
+
+                    //--------------------------------------------------------------
+
+                        if( eName.equals( sName ) ) key = entry;
+                        if( eName.equals( sName ) ) break;
+
+                //------------------------------------------------------------------
+                    } if( null == key ) continue;
+                //------------------------------------------------------------------
+
+                    ItemStack result = furnace.getSmeltingResult( key );
+                    Float experience = furnace.getSmeltingExperience( key );
+
+                //------------------------------------------------------------------
+
+                    ArrayList<Blocks.Compressed> results = new ArrayList<>();
+
+                //------------------------------------------------------------------
+                    for( Blocks.Compressed entry : Blocks.compressions ) {
+                //------------------------------------------------------------------
+
+                        String sName = Blocks.Stem.getItemFullName( entry.stem );
+                        String rName = Blocks.Stem.getItemFullName( result );
+
+                    //--------------------------------------------------------------
+
+                        if( sName.equals( rName ) ) results.add( entry );
+
+                //------------------------------------------------------------------
+                    }
+                //------------------------------------------------------------------
+
+                    results.removeIf( s -> s.level.equals( block.level ) );
+
+                    if( 1 != results.size() ) continue;
+
+                //------------------------------------------------------------------
+
+                    ItemStack input  = new ItemStack(       block      , 1 , 0 );
+                    ItemStack output = new ItemStack( results.get( 0 ) , 1 , 0 );
+
+                    Float extra = (float) Math.pow( 9 , block.level );
+
+                    recipes.add( new Furnace( input, output, experience * extra ) );
+
+            //----------------------------------------------------------------------
+                } return recipes;
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
+            public static void JSON() {
+            //----------------------------------------------------------------------
                 if( null == Resources.tmp ) return;
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 FileSystem mod = Resources.mod;
                 FileSystem tmp = Resources.tmp;
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
-                int L1 = Blocks.Generation.blocks.length;
-                int L2 = Configurations.getDepth() + 1;
+                Blocks.Compressed prev = Blocks.compressions.get( 0 );
 
-            //------------------------------------------------------------------------------
-                for( int y = 0; y < L1; y++ ) { for( int x = 1; x < L2; x++ ) {
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                for( Blocks.Compressed blok : Blocks.compressions ) {
+            //----------------------------------------------------------------------
 
-                    Blocks.Compressed prev  = Blocks.Generation.blocks[y][x - 1];
-                    Blocks.Compressed stack = Blocks.Generation.blocks[y][  x  ];
-                    ItemStack         stem  = stack.stem;
+                    Boolean   start = ( 1 == blok.level );
+                    ItemStack stem  = blok.stem;
 
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
 
-                    ResourceLocation stemLoc  = stack.stem.getItem().getRegistryName();
-                    ResourceLocation prevLoc  = null != prev ? prev.getRegistryName() :null;
-                    ResourceLocation stackLoc = stack.getRegistryName();
+                    ResourceLocation stemLoc = stem.getItem().getRegistryName();
+                    ResourceLocation prevLoc = prev.getRegistryName();
+                    ResourceLocation blokLoc = blok.getRegistryName();
 
-                    if( null == stackLoc ) continue;
+                    if( null == blokLoc ) continue;
                     if( null == stemLoc ) continue;
-                    if( null == prevLoc && null != prev ) continue;
+                    if( null == prevLoc ) continue;
 
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
 
-                    String stemID  = stemLoc.toString();
-                    String prevID  = null != prev ? prevLoc.toString() : "";
-                    String stackID = stackLoc.toString();
+                    String stemID = stemLoc.toString();
+                    String prevID = prevLoc.toString();
+                    String blokID = blokLoc.toString();
 
-                    String stemVarID  = String.valueOf( stem.getMetadata() );
-                    String stackVarID = String.valueOf( 0 );
-
-                //--------------------------------------------------------------------------
+                    String stemVarID = String.valueOf( stem.getMetadata() );
+                    String blokVarID = String.valueOf( 0 );
 
                     String   coJson = compressing;
                     String decoJson = decompressing;
 
-                    if( 1 == x ) coJson   = coJson  .replace("[NONCMPR]", stemID );
-                    if( 1 == x ) decoJson = decoJson.replace("[NONCMPR]", stemID );
+                //------------------------------------------------------------------
 
-                    if( 1 != x ) coJson   = coJson  .replace("[NONCMPR]", prevID );
-                    if( 1 != x ) decoJson = decoJson.replace("[NONCMPR]", prevID );
+                    if(  start ) coJson   = coJson  .replace( "[NONCMPR]", stemID );
+                    if(  start ) decoJson = decoJson.replace( "[NONCMPR]", stemID );
 
-                    coJson   = coJson  .replace( "[CMPR]" , stackID );
-                    decoJson = decoJson.replace( "[CMPR]" , stackID );
+                    if( !start ) coJson   = coJson  .replace( "[NONCMPR]", prevID );
+                    if( !start ) decoJson = decoJson.replace( "[NONCMPR]", prevID );
 
-                    if( 1 == x ) coJson   = coJson  .replace("[VAR]", stemVarID );
-                    if( 1 == x ) decoJson = decoJson.replace("[VAR]", stemVarID );
+                    coJson   = coJson  .replace( "[CMPR]" , blokID );
+                    decoJson = decoJson.replace( "[CMPR]" , blokID );
 
-                    if( 1 != x ) coJson   = coJson  .replace("[VAR]", stackVarID );
-                    if( 1 != x ) decoJson = decoJson.replace("[VAR]", stackVarID );
+                    if(  start ) coJson   = coJson  .replace( "[VAR]", stemVarID );
+                    if(  start ) decoJson = decoJson.replace( "[VAR]", stemVarID );
 
-                //--------------------------------------------------------------------------
+                    if( !start ) coJson   = coJson  .replace( "[VAR]", blokVarID );
+                    if( !start ) decoJson = decoJson.replace( "[VAR]", blokVarID );
+
+                //------------------------------------------------------------------
 
                     String base = "/assets/" + Base.modId + "/recipes/";
-                    String name = stack.getRegistryName().getResourcePath();
+                    String name = blok.getRegistryName().getResourcePath();
 
                     String   coJsonName = base + name + "_compressing.json";
                     String decoJsonName = base + name + "_decompressing.json";
@@ -302,25 +361,50 @@
                     String[] jsons = new String[] { coJson , decoJson };
                     String[] files = new String[] { coJsonName , decoJsonName };
 
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
                     for( int i = 0; i < files.length; i++ ) {
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
 
                         String data = jsons[i];
 
-                        if( null != mod ) Resources.Write( data , mod.getPath( files[i] ) );
-                        if( null != tmp ) Resources.Write( data , tmp.getPath( files[i] ) );
+                        if(null != mod) Resources.Write(data,mod.getPath(files[i]));
+                        if(null != tmp) Resources.Write(data,tmp.getPath(files[i]));
+            //----------------------------------------------------------------------
+                } } }
 
-            //------------------------------------------------------------------------------
-            } } } }
-
-        //==================================================================================
+        //==========================================================================
 
         }
 
-    //======================================================================================
+    //==============================================================================
+
+        public static class Furnace {
+
+        //==========================================================================
+
+            public ItemStack input;
+            public ItemStack output;
+            public Float     experience;
+
+        //==========================================================================
+
+            Furnace( ItemStack input , ItemStack output , Float experience ) {
+            //----------------------------------------------------------------------
+
+                this.input = input;
+                this.output = output;
+                this.experience = experience;
+
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
+        }
+
+    //==============================================================================
 
     }
 
-//==========================================================================================
+//==================================================================================
 

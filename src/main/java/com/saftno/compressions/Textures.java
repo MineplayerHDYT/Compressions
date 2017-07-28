@@ -1,26 +1,30 @@
-//==========================================================================================
+//==================================================================================
 
     package com.saftno.compressions;
 
-//==========================================================================================
+//==================================================================================
 
+    import net.minecraft.block.Block;
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.renderer.RenderItem;
     import net.minecraft.client.renderer.block.model.IBakedModel;
+    import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
     import net.minecraft.client.renderer.texture.TextureManager;
     import net.minecraft.client.renderer.texture.TextureMap;
     import net.minecraft.client.shader.Framebuffer;
     import net.minecraft.item.ItemStack;
     import net.minecraft.util.ResourceLocation;
+    import net.minecraft.util.math.AxisAlignedBB;
+    import net.minecraftforge.client.ForgeHooksClient;
     import org.apache.commons.io.FileUtils;
-    import org.jetbrains.annotations.NotNull;
     import org.lwjgl.BufferUtils;
     import org.lwjgl.opengl.Display;
     import org.lwjgl.opengl.GL11;
 
-//==========================================================================================
+//==================================================================================
 
     import javax.imageio.ImageIO;
+    import java.awt.Color;
     import java.awt.image.BufferedImage;
     import java.io.IOException;
     import java.io.InputStream;
@@ -31,21 +35,61 @@
     import java.nio.file.Files;
     import java.nio.file.Path;
     import java.nio.file.Paths;
-    import java.util.Arrays;
 
-//==========================================================================================
+//==================================================================================
+    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+//==================================================================================
 
     class Textures {
+
+    //==============================================================================
+
+        static IntBuffer GrabScreen() {
+        //--------------------------------------------------------------------------
+
+            int w = Minecraft.getMinecraft().displayWidth;
+            int h = Minecraft.getMinecraft().displayHeight;
+
+        //--------------------------------------------------------------------------
+
+            IntBuffer pixels = BufferUtils.createIntBuffer( w * h );
+            GL11.glReadPixels( 0, 0, w, h, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixels );
+
+        //--------------------------------------------------------------------------
+            return pixels;
+        //--------------------------------------------------------------------------
+        }
+
+        static void SetScreen( IntBuffer pixels ) {
+        //--------------------------------------------------------------------------
+
+            int w = Minecraft.getMinecraft().displayWidth;
+            int h = Minecraft.getMinecraft().displayHeight;
+
+        //--------------------------------------------------------------------------
+
+            GL11.glDrawPixels( w , h , GL11.GL_RGBA , GL11.GL_UNSIGNED_BYTE , pixels );
+
+        //--------------------------------------------------------------------------
+
+            Minecraft.getMinecraft().updateDisplay();
+
+        //----------------------------------------------------------------------------------
+        }
 
     //======================================================================================
 
         static class Generation {
 
         //==================================================================================
+
+            static Boolean rotate = true;
+
+        //==================================================================================
         // Get a lot of pixels
         //==================================================================================
 
-            @NotNull static int[][] getFileData(FileSystem mod , String name ) { try {
+            static int[][] getFileData( FileSystem mod , String name ) { try {
             //------------------------------------------------------------------------------
 
                 String texLoc = null != mod ? "" : Base.root + "/../src/main/resources/";
@@ -93,7 +137,7 @@
             //------------------------------------------------------------------------------
             } catch ( IOException e ) { e.printStackTrace(); return new int[1][1]; } }
 
-            @NotNull static int[][] get2DTexData( ItemStack stack ) {
+            static int[][] get2DTexData( ItemStack stack ) {
             //------------------------------------------------------------------------------
 
                 IBakedModel model = Minecraft.getMinecraft()
@@ -102,6 +146,8 @@
                         .getItemModel( stack );
 
                 model = model.getOverrides().handleItemState( model , stack , null , null );
+                model = ForgeHooksClient.handleCameraTransforms( model ,
+                        ItemCameraTransforms.TransformType.GUI , false );
 
             //------------------------------------------------------------------------------
 
@@ -161,6 +207,38 @@
 
             //------------------------------------------------------------------------------
 
+                Block block = Block.getBlockFromItem( stack.getItem() );
+
+            //------------------------------------------------------------------------------
+                if( net.minecraft.init.Blocks.AIR != block && rotate ) { try {
+            //------------------------------------------------------------------------------
+
+                    AxisAlignedBB box = block.getDefaultState().getBoundingBox(null , null);
+
+                    if( box.maxY < 0.5f ) GL11.glRotatef( 90.0F , 1.0F , 0.0F , 0.0F );
+
+            //------------------------------------------------------------------------------
+                } catch( NullPointerException ex ) { int s = 0; } }
+            //------------------------------------------------------------------------------
+
+                ResourceLocation loc = stack.getItem().getRegistryName();
+
+            //------------------------------------------------------------------------------
+                if( null != loc ){
+            //------------------------------------------------------------------------------
+
+                    boolean bed    = loc.getResourcePath().contains( "bed" );
+                    boolean shield = loc.getResourcePath().contains( "shield" );
+
+                    if( bed )    GL11.glRotatef( +90.0F , 0.0F , 1.0F , 0.0F );
+
+                    if( shield ) GL11.glScalef( 0.6F , 0.6F , 0.6F );
+                    if( shield ) GL11.glTranslatef( 0.5F , 0.5F , 1.0F );
+
+            //------------------------------------------------------------------------------
+                }
+            //------------------------------------------------------------------------------
+
                 TextureManager texMan = Minecraft.getMinecraft().getTextureManager();
                 texMan.bindTexture( TextureMap.LOCATION_BLOCKS_TEXTURE );
 
@@ -214,6 +292,18 @@
                 frameBuffer.unbindFramebuffer();
                 frameBuffer.deleteFramebuffer();
 
+                Textures.SetScreen( Base.forgeEndScreen );
+
+            //------------------------------------------------------------------------------
+            // Crude fix for rails
+            //------------------------------------------------------------------------------
+
+                Boolean empty = ( 0 == ( averagePixel( data ) & 255 ) );
+
+                if( empty ) rotate = false;
+                if( empty ) data = get2DTexData( stack );
+                if( empty ) rotate = true;
+
             //------------------------------------------------------------------------------
 
                 return data;
@@ -221,7 +311,7 @@
             //------------------------------------------------------------------------------
             }
 
-            @NotNull static int[][] get3DTexData(ItemStack stack ) {
+            static int[][] get3DTexData( ItemStack stack ) {
             //------------------------------------------------------------------------------
 
                 IBakedModel model = Minecraft.getMinecraft()
@@ -233,8 +323,8 @@
 
             //------------------------------------------------------------------------------
 
-                int w = 256;
-                int h = 256;
+                int w = 128;
+                int h = 128;
 
                 Framebuffer frameBuffer = new Framebuffer( w , h , true );
 
@@ -279,6 +369,9 @@
 
                 GL11.glEnable( GL11.GL_TEXTURE_2D );
 
+                GL11.glEnable( GL11.GL_CULL_FACE );
+                GL11.glCullFace( GL11.GL_FRONT );
+
             //------------------------------------------------------------------------------
 
                 GL11.glMatrixMode( GL11.GL_PROJECTION );
@@ -302,12 +395,12 @@
 
                 GL11.glLight(  GL11.GL_LIGHT1 , GL11.GL_DIFFUSE , LightDiffuse );
                 GL11.glLight(  GL11.GL_LIGHT1 , GL11.GL_POSITION , lightPos );
-                GL11.glLightf( GL11.GL_LIGHT1 , GL11.GL_LINEAR_ATTENUATION , 0.6f );
+                GL11.glLightf( GL11.GL_LIGHT1 , GL11.GL_LINEAR_ATTENUATION , 0.9f );
 
             //------------------------------------------------------------------------------
 
                 GL11.glRotatef( -25.0F , 1.0F , 0.0F , 0.0F );
-                GL11.glRotatef( -45.0F , 0.0F , 1.0F , 0.0F );
+                GL11.glRotatef( +45.0F , 0.0F , 1.0F , 0.0F );
 
                 TextureManager texMan = Minecraft.getMinecraft().getTextureManager();
                 texMan.bindTexture( TextureMap.LOCATION_BLOCKS_TEXTURE );
@@ -373,7 +466,7 @@
         // Manipulate a single pixel
         //==================================================================================
 
-            static int averagePixel( int[][] pixels ) {
+            static int averagePixel(int[][] pixels ) {
             //------------------------------------------------------------------------------
 
                 int h = 16;
@@ -397,6 +490,8 @@
                     int b = ( pixels[y][x] >> 8  ) & 255;
                     int a = ( pixels[y][x]       ) & 255;
 
+                    //if( a == 0 ) continue;
+
                     R += r;
                     G += g;
                     B += b;
@@ -408,17 +503,22 @@
                 } }
             //------------------------------------------------------------------------------
 
-                R = R / count;
-                G = G / count;
-                B = B / count;
-                A = 255;
+                R = (int) (( R / count ) * 1.0);
+                G = (int) (( G / count ) * 1.0);
+                B = (int) (( B / count ) * 1.0);
+                A = (int) (( A / count ) * 1.0);
+
+                R = R > 255 ? 255 : R;
+                G = G > 255 ? 255 : G;
+                B = B > 255 ? 255 : B;
+                A = A > 255 ? 255 : A;
 
                 return ( R << 24 ) | ( G << 16 ) | ( B << 8 ) | ( A );
 
             //------------------------------------------------------------------------------
             }
 
-            static int darkenPixel( int color ) {
+            static int darkenPixel(int color ) {
             //------------------------------------------------------------------------------
 
                 int darker = 0;
@@ -437,11 +537,56 @@
             //------------------------------------------------------------------------------
             }
 
+            static int getPixelHue(int color ) {
+            //------------------------------------------------------------------------------
+
+                int R = ( color >> 24 ) & 255;
+                int G = ( color >> 16 ) & 255;
+                int B = ( color >> 8  ) & 255;
+
+            //------------------------------------------------------------------------------
+
+                float min = R;
+
+                if( R <= G && R <= B ) min = R;
+                if( G <= B && G <= R ) min = G;
+                if( B <= R && B <= G ) min = B;
+
+            //------------------------------------------------------------------------------
+
+                float max = R;
+
+                if( R >= G && R >= B ) max = R;
+                if( G >= B && G >= R ) max = G;
+                if( B >= R && B >= G ) max = B;
+
+            //------------------------------------------------------------------------------
+
+                if( max == min ) return 0;
+
+            //------------------------------------------------------------------------------
+
+                float hue = 0f;
+
+                if ( max == R ) { hue = 0f + ( G - B ) / ( max - min ); }
+                if ( max == G ) { hue = 2f + ( B - R ) / ( max - min ); }
+                if ( max == B ) { hue = 4f + ( R - G ) / ( max - min ); }
+
+            //------------------------------------------------------------------------------
+
+                hue = hue * 60;
+                if( hue < 0 ) hue = hue + 360;
+
+            //------------------------------------------------------------------------------
+                return Math.round( hue );
+            //------------------------------------------------------------------------------
+            }
+
         //==================================================================================
         // Manipulate a lot of pixels
         //==================================================================================
 
-            @NotNull static int[][] darkenPixels( int step , int[][] pixels ) {
+            static int[][] darkenPixels( int step , int[][] pixels ) {
             //------------------------------------------------------------------------------
 
                 int h = 16;
@@ -474,7 +619,7 @@
             //------------------------------------------------------------------------------
             }
 
-            @NotNull static int[][] joinPixels( int[][] under , int[][] above ) {
+            static int[][] joinPixels( int[][] under , int[][] above ) {
             //------------------------------------------------------------------------------
 
                 int h = 16;
@@ -512,6 +657,63 @@
                     int R = ( ( ( 255 * aR * aA ) + ( uR * uA * (255 - aA) ) ) / A ) / 255;
                     int G = ( ( ( 255 * aG * aA ) + ( uG * uA * (255 - aA) ) ) / A ) / 255;
                     int B = ( ( ( 255 * aB * aA ) + ( uB * uA * (255 - aA) ) ) / A ) / 255;
+
+                    joined[y][x] = ( R << 24 ) | ( G << 16 ) | ( B << 8 ) | ( A );
+
+            //------------------------------------------------------------------------------
+                } }
+            //------------------------------------------------------------------------------
+
+                return joined;
+
+            //------------------------------------------------------------------------------
+            }
+
+            static int[][] colorPixels( int color , int[][] pixels ) {
+            //------------------------------------------------------------------------------
+
+                int h = 16;
+                int w = 16;
+
+                int[][] joined = new int[h][w];
+
+            //------------------------------------------------------------------------------
+
+                float[] cHSB = new float[3];
+
+                int cR = ( color >> 24 ) & 255;
+                int cG = ( color >> 16 ) & 255;
+                int cB = ( color >> 8  ) & 255;
+
+                Color.RGBtoHSB( cR , cG , cB , cHSB );
+
+            //------------------------------------------------------------------------------
+                for( int y = 0; y < h; y++ ) { for( int x = 0; x < w; x++ ) {
+            //------------------------------------------------------------------------------
+
+                    float[] HSB = new float[3];
+
+                    int R = ( pixels[y][x] >> 24 ) & 255;
+                    int G = ( pixels[y][x] >> 16 ) & 255;
+                    int B = ( pixels[y][x] >> 8  ) & 255;
+                    int A = ( pixels[y][x]       ) & 255;
+
+                    Color.RGBtoHSB( R , G , B , HSB );
+
+                //--------------------------------------------------------------------------
+
+                    float hue        = getPixelHue( color ) * 1.0f / 360;
+                    float brightness = HSB[2] * HSB[2];
+
+                    Color hued = new Color( Color.HSBtoRGB( hue , cHSB[1] , brightness ) );
+
+                //--------------------------------------------------------------------------
+
+                    R = hued.getRed();
+                    G = hued.getGreen();
+                    B = hued.getBlue();
+
+                //--------------------------------------------------------------------------
 
                     joined[y][x] = ( R << 24 ) | ( G << 16 ) | ( B << 8 ) | ( A );
 
@@ -570,6 +772,58 @@
             //------------------------------------------------------------------------------
             } catch ( IOException e ) { e.printStackTrace(); } }
 
+            @SuppressWarnings( "unused" ) static void saveAllToFile() { try {
+                //------------------------------------------------------------------------------
+
+                int l = Blocks.compressions.size();
+
+                int w = 128 * (     ( l < 8 ? l     : 8 ) );
+                int h = 128 * ( 1 + ( l > 8 ? l / 8 : 0 ) );
+
+                BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+
+                //------------------------------------------------------------------------------
+                for( int i = 0; i < Blocks.compressions.size(); i++ ) {
+                    //------------------------------------------------------------------------------
+
+                    Blocks.Compressed block = Blocks.compressions.get( i );
+
+                    int[][] data = get3DTexData( new ItemStack( block , 1 , 0 ) );
+
+                    //--------------------------------------------------------------------------
+                    for( int y = 0; y < 128; y++ ) { for( int x = 0; x < 128; x++ ) {
+                        //--------------------------------------------------------------------------
+
+                        int R = ( data[y][x] >> 24 ) & 255;
+                        int G = ( data[y][x] >> 16 ) & 255;
+                        int B = ( data[y][x] >> 8  ) & 255;
+                        int A = ( data[y][x]       ) & 255;
+
+                        int color = ( A << 24 ) | ( R << 16 ) | ( G << 8 ) | ( B );
+
+                        image.setRGB( 128 * (i % 8) + x , 128 * (i / 8) + y , color );
+
+                        //------------------------------------------------------------------------------
+                    } } }
+                //------------------------------------------------------------------------------
+
+                Path path = Paths.get( Base.root + "/logs/all.png" );
+
+                //------------------------------------------------------------------------------
+
+                if( path.toFile().exists() ) FileUtils.deleteQuietly( path.toFile() );
+                OutputStream output = Files.newOutputStream( path );
+
+                ImageIO.write( image , "png" , output );
+
+                output.flush();
+                output.close();
+
+                //------------------------------------------------------------------------------
+            } catch ( IOException e ) { e.printStackTrace(); } }
+
+        //==================================================================================
+
             static void saveToJAR( int[][] data , Path path ) { try {
             //------------------------------------------------------------------------------
                 if( Files.exists( path ) ) return;
@@ -610,75 +864,93 @@
             //------------------------------------------------------------------------------
             } catch ( IOException e ) { e.printStackTrace(); } }
 
-        //==================================================================================
+        //==========================================================================
         // Generate extra textures from existing blocks
-        //==================================================================================
+        //==========================================================================
 
             static void Blocks() {
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
                 if( null == Resources.tmp ) return;
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                if( Blocks.compressions.isEmpty() ) return;
+            //----------------------------------------------------------------------
 
                 FileSystem mod = Resources.mod;
                 FileSystem tmp = Resources.tmp;
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 int[][] frame = getFileData( mod , "frame" );
+                int[][] side  = getFileData( mod , "side" );
 
-                @SuppressWarnings("unused") int[][] mesh = getFileData( mod , "mesh"  );
-
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 String texLoc = "/assets/" + Base.modId + "/textures/blocks/";
 
-                int L1 = Blocks.Generation.blocks.length;
-                int L2 = Configurations.getDepth() + 1;
+            //----------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
-                for( int y = 0; y < L1; y++ ) {
-            //------------------------------------------------------------------------------
+                int avgPixel = 0;
 
-                    ItemStack base = Blocks.Generation.blocks[y][1].stem;
+                int[][] back   = null;
+                int[][] pixels = null;
+                int[][] backed = null;
+                int[][] joined = null;
 
-                    //saveModelImage( base , base.getDisplayName() );
+            //----------------------------------------------------------------------
+                for( Blocks.Compressed block : Blocks.compressions ) {
+            //----------------------------------------------------------------------
 
-                    int[][] pixels = get2DTexData( base );
+                    ItemStack stem = block.stem;
 
-                //--------------------------------------------------------------------------
+                    if( 1 == block.level ) pixels   = get2DTexData( stem );
+                    if( 1 == block.level ) avgPixel = averagePixel( pixels );
+                    if( 1 == block.level ) back     = colorPixels( avgPixel, side );
+                    if( 1 == block.level ) backed   = frame;
 
-                    int[][] back = new int[frame.length][frame[0].length];
+                //------------------------------------------------------------------
 
-                    for( int[] aBack : back ) Arrays.fill( aBack , averagePixel( pixels ) );
+                    ResourceLocation locBase = stem.getItem().getRegistryName();
 
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
+                    if( null != locBase && 1 == block.level ) {
+                //------------------------------------------------------------------
 
-                    int[][] backed = joinPixels( back , frame );
+                        String name = locBase.getResourcePath();
 
-                //--------------------------------------------------------------------------
-                    for( int x = 1; x < L2; x++ ) {
-                //--------------------------------------------------------------------------
+                        Boolean transparent = false;
 
-                        Blocks.Compressed stack = Blocks.Generation.blocks[y][x];
-                        ResourceLocation  loc   = stack.getRegistryName();
+                        transparent = transparent ||  name.contains( "glass" );
+                        transparent = transparent ||  name.contains( "ice" );
+                        transparent = transparent && !name.contains( "bottle" );
 
-                        if( null == loc ) continue;
+                        if( !transparent ) backed = joinPixels( back , frame );
 
-                    //----------------------------------------------------------------------
+                //------------------------------------------------------------------
+                    }
+                //------------------------------------------------------------------
 
-                        String name = loc.getResourcePath();
-                        String file = texLoc + name + ".png";
+                    if( 1 == block.level ) joined = joinPixels( backed , pixels );
 
+                //------------------------------------------------------------------
 
-                        int[][] meshed = darkenPixels( x , joinPixels( backed , pixels ) );
+                    ResourceLocation loc = block.getRegistryName();
 
-                    //----------------------------------------------------------------------
+                //------------------------------------------------------------------
+                    if( null == loc ) continue;
+                //------------------------------------------------------------------
 
-                        if( null != mod ) saveToJAR( meshed , mod.getPath( file ) );
-                        if( null != tmp ) saveToJAR( meshed , tmp.getPath( file ) );
+                    String name = loc.getResourcePath();
+                    String file = texLoc + name + ".png";
 
-            //------------------------------------------------------------------------------
-            } } }
+                    int[][] meshed = darkenPixels( block.level , joined );
+
+                //------------------------------------------------------------------
+
+                    if( null != mod ) saveToJAR( meshed , mod.getPath( file ) );
+                    if( null != tmp ) saveToJAR( meshed , tmp.getPath( file ) );
+
+        //--------------------------------------------------------------------------
+            } }
 
         //==================================================================================
 

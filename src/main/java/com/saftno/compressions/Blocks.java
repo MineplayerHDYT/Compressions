@@ -1,301 +1,531 @@
-//==========================================================================================
+//==================================================================================
 
     package com.saftno.compressions;
 
-//==========================================================================================
+//==================================================================================
 
+    import mcp.MethodsReturnNonnullByDefault;
     import net.minecraft.block.Block;
+    import net.minecraft.block.SoundType;
     import net.minecraft.block.material.Material;
+    import net.minecraft.block.state.IBlockState;
     import net.minecraft.creativetab.CreativeTabs;
+    import net.minecraft.entity.Entity;
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemBlock;
     import net.minecraft.item.ItemStack;
+    import net.minecraft.item.crafting.FurnaceRecipes;
     import net.minecraft.item.crafting.IRecipe;
+    import net.minecraft.nbt.NBTTagCompound;
+    import net.minecraft.util.BlockRenderLayer;
+    import net.minecraft.util.EnumFacing;
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
+    import net.minecraft.util.math.BlockPos;
+    import net.minecraft.world.IBlockAccess;
+    import net.minecraft.world.World;
     import net.minecraftforge.client.event.ModelRegistryEvent;
     import net.minecraftforge.event.RegistryEvent.Register;
     import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
+    import net.minecraftforge.fml.relauncher.Side;
+    import net.minecraftforge.fml.relauncher.SideOnly;
+    import net.minecraftforge.registries.IForgeRegistry;
 
-//==========================================================================================
+//==================================================================================
 
-    import org.jetbrains.annotations.NotNull;
-
-//==========================================================================================
-
+    import javax.annotation.ParametersAreNonnullByDefault;
     import java.util.ArrayList;
 
-//==========================================================================================
+//==================================================================================
+    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+//==================================================================================
 
-    @SuppressWarnings( "WeakerAccess" ) class Blocks {
+    public class Blocks {
 
-    //======================================================================================
+    //==============================================================================
 
-        static ArrayList<Stem> blocks;
+        public static ArrayList<Stem> blocks;
+        public static ArrayList<Compressed> compressions;
 
-    //======================================================================================
+    //==============================================================================
 
-        static class Initialization {
+        public static class Initialization {
 
-        //==================================================================================
+        //==========================================================================
 
-            static void Pre( @SuppressWarnings("unused") FMLPreInitializationEvent event ) {
-            //------------------------------------------------------------------------------
+            static void Pre( FMLPreInitializationEvent event ) {
+            //----------------------------------------------------------------------
 
-                blocks = new ArrayList<>();
+                blocks       = new ArrayList<>();
+                compressions = new ArrayList<>();
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
 
         }
 
-        static class Registration {
+    //==============================================================================
 
-        //==================================================================================
+        public static class Registration {
 
-            static void Blocks( Register<Block> event ) {
-            //------------------------------------------------------------------------------
+        //==========================================================================
 
-                for( Stem block : blocks ) { event.getRegistry().register( block ); }
+            public static void Blocks( Register<Block> event ) {
+            //----------------------------------------------------------------------
+                IForgeRegistry<Block> registry = event.getRegistry();
+            //----------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
+                for( Stem block : blocks ) registry.register( block );
+
+            //----------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
 
-            static void Items( Register<Item> event ) {
-            //------------------------------------------------------------------------------
+            public static void Items( Register<Item> event ) {
+            //----------------------------------------------------------------------
 
                 Generation.Compressed();
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                IForgeRegistry<Item> registry = event.getRegistry();
+            //----------------------------------------------------------------------
 
-                for(Stem block : blocks) { event.getRegistry().register(block.getAsItem());}
+                for( Stem block : blocks ) registry.register( block.getAsItem() );
 
-            //------------------------------------------------------------------------------
+            //--------------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
 
-            static void Recipes( Register<IRecipe> event ) {
-            //------------------------------------------------------------------------------
+            public static void Recipes( Register<IRecipe> event ) {
+            //----------------------------------------------------------------------
+                IForgeRegistry<IRecipe> registry = event.getRegistry();
+            //----------------------------------------------------------------------
 
-                ArrayList<IRecipe> recipes = new ArrayList<>();
+                ArrayList<IRecipe> crafting = new ArrayList<>();
 
-                if(null == Resources.mod)recipes.addAll(Recipes.Generation.Compression()  );
-                if(null == Resources.mod)recipes.addAll(Recipes.Generation.Decompression());
+                if(null==Resources.mod)crafting.addAll(Recipes.Generation.Compression()  );
+                if(null==Resources.mod)crafting.addAll(Recipes.Generation.Decompression());
 
-            //------------------------------------------------------------------------------
+                for( IRecipe recipe : crafting ) { event.getRegistry().register( recipe ); }
 
-                for( IRecipe recipe : recipes ) { event.getRegistry().register( recipe ); }
+            //--------------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
+                ArrayList<Recipes.Furnace> furnace = new ArrayList<>();
+
+                furnace.addAll( Recipes.Generation.NonOreFurnace() );
+
+                for( Recipes.Furnace recipe : furnace ) FurnaceRecipes.instance()
+                        .addSmeltingRecipe(
+                                recipe.input ,
+                                recipe.output ,
+                                recipe.experience );
+
+            //--------------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
 
-            static void Models( @SuppressWarnings("unused") ModelRegistryEvent event ) {
-            //------------------------------------------------------------------------------
+            public static void Models( ModelRegistryEvent event ) {
+            //----------------------------------------------------------------------
 
-                for( Stem block : blocks ) { Base.proxy.registerBlockRenderer( block ); }
+                for( Stem block: blocks ) Base.proxy.registerBlockRenderer( block );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
 
         }
 
-        static class Generation {
+        public static class Generation {
 
-        //==================================================================================
+        //==========================================================================
 
-            static Compressed[][] blocks = null;
+            public static NonNullList<ItemStack> getAllItems( String ID ) {
+            //----------------------------------------------------------------------
 
-        //==================================================================================
-
-            @NotNull static NonNullList<ItemStack> getVariants( String ID ) {
-            //------------------------------------------------------------------------------
                 NonNullList<ItemStack> items = NonNullList.create();
-            //------------------------------------------------------------------------------
 
-                String[] id   = ID.split( ":" );
-                Integer  meta = id.length > 2 ? Integer.parseInt( id[2] ) : -1;
+            //----------------------------------------------------------------------
 
-                ResourceLocation location = new ResourceLocation( id[0] , id[1] );
+                String[] id = ID.split( ":" );
 
-            //------------------------------------------------------------------------------
+                String  modID  = 2 > id.length ? ID   : id[0];
+                String  itemID = 2 > id.length ? null : id[1];
+                Integer varID  = 3 > id.length ? -1   : Integer.parseInt( id[2] );
 
-                Item  item  = ForgeRegistries.ITEMS .getValue( location );
-                Block block = ForgeRegistries.BLOCKS.getValue( location );
+            //----------------------------------------------------------------------
 
-                if( null == item && null == block ) return items;
+                NonNullList<ResourceLocation> locations = NonNullList.create();
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                IForgeRegistry<Item> Items = ForgeRegistries.ITEMS;
+            //----------------------------------------------------------------------
+                if( 1 == id.length ) { for( Item item : Items.getValues() ) {
+            //----------------------------------------------------------------------
 
-                if( null == item ) item = Item.getItemFromBlock( block );
-                if( net.minecraft.init.Items.AIR == item ) return items;
+                    ResourceLocation loc = item.getRegistryName();
 
-            //------------------------------------------------------------------------------
+                //------------------------------------------------------------------
+                    if( null == loc ) continue;
+                //------------------------------------------------------------------
+                    if( !loc.getResourceDomain().equals( modID ) ) continue;
+                //------------------------------------------------------------------
 
-                if( !item.getHasSubtypes() ) items.add( new ItemStack( item , 1 , 0 ) );
-                if( !item.getHasSubtypes() ) return items;
+                    locations.add( item.getRegistryName() );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                } }
+            //----------------------------------------------------------------------
 
-                if( meta >= 0 ) items.add( new ItemStack( item , 1 , meta ) );
-                if( meta >= 0 ) return items;
+                if(1 < id.length) locations.add(new ResourceLocation(modID,itemID));
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                IForgeRegistry<Block> Blocks = ForgeRegistries.BLOCKS;
+            //----------------------------------------------------------------------
+                for( ResourceLocation loc : locations ) {
+            //----------------------------------------------------------------------
 
-                CreativeTabs tab = item.getCreativeTab();
+                    Item  item  = Items.getValue( loc );
+                    Block block = Blocks.getValue( loc );
 
-                if( null == tab ) tab = CreativeTabs.CREATIVE_TAB_ARRAY[0];
+                    if( null == item && null == block ) continue;
 
-                item.getSubItems( tab , items );
+                //------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
-                return items;
-            //------------------------------------------------------------------------------
+                    if( null == item ) item = Item.getItemFromBlock( block );
+                    if( net.minecraft.init.Items.AIR == item ) continue;
+
+                //------------------------------------------------------------------
+
+                    if( !item.getHasSubtypes() ) items.add(new ItemStack(item,1,0));
+                    if( !item.getHasSubtypes() ) continue;
+
+                //------------------------------------------------------------------
+
+                    if( varID >= 0 ) items.add( new ItemStack( item , 1 , varID ) );
+                    if( varID >= 0 ) continue;
+
+                //------------------------------------------------------------------
+
+                    CreativeTabs tab = item.getCreativeTab();
+
+                    if( null == tab ) tab = CreativeTabs.CREATIVE_TAB_ARRAY[0];
+
+                    item.getSubItems( tab , items );
+
+            //----------------------------------------------------------------------
+                } return items;
+            //----------------------------------------------------------------------
             }
 
-            @NotNull static Compressed getCompressed( int stage , ItemStack itemStack ) {
-            //------------------------------------------------------------------------------
+            public static Compressed getCompressed(int stage, ItemStack itemStack) {
+            //----------------------------------------------------------------------
 
                 Item  item  = itemStack.getItem();
                 Block block = Block.getBlockFromItem( item );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                Block AIR = net.minecraft.init.Blocks.AIR;
+            //----------------------------------------------------------------------
 
                 Material material;
 
-                try { material = block.getBlockState().getBaseState().getMaterial(); }
-                catch ( NullPointerException e ) { material = Material.LEAVES; }
+                if( AIR == block ) material = Material.WOOD;
+                else material = block.getBlockState().getBaseState().getMaterial();
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 return new Compressed( stage , material , itemStack );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
 
-            static void Compressed() {
-            //------------------------------------------------------------------------------
+            public static void Compressed() {
+            //----------------------------------------------------------------------
 
                 NonNullList<ItemStack> entries = NonNullList.create();
 
-                for( String ID : Configurations.getIDs() ) entries.addAll(getVariants(ID));
+            //----------------------------------------------------------------------
+                String[] IDs = Configurations.getIDs();
+            //----------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
+                for( String ID : IDs ) entries.addAll( getAllItems( ID ) );
+
+            //----------------------------------------------------------------------
 
                 int L1 = entries.size();
-                int L2 = Configurations.getDepth() + 1;
+                int L2 = Configurations.getDepth();
 
-                blocks = new Compressed[L1][L2];
+            //----------------------------------------------------------------------
+                for( int y = 0; y < L1; y++ ) { for( int x = 0; x < L2; x++ ) {
+            //----------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
-                for( int y = 0; y < L1; y++ ) { for( int x = 1; x < L2; x++ ) {
-            //------------------------------------------------------------------------------
+                    Compressed block = getCompressed( x + 1 , entries.get( y ) );
 
-                    blocks[y][x] = getCompressed( x , entries.get( y ) );
+                //----------------------------------------------------------------------
 
-                    Blocks.blocks.add( blocks[y][x] );
+                    Blocks.blocks.add( block );
+                    Blocks.compressions.add( block );
 
-                    ForgeRegistries.BLOCKS.register( blocks[y][x] );
+                //----------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
+                    ForgeRegistries.BLOCKS.register( block );
+
+            //----------------------------------------------------------------------
                 } }
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
 
         }
 
-    //======================================================================================
+    //==============================================================================
 
-        static class Stem extends Block {
+        public static class Stem extends Block {
 
-        //==================================================================================
+        //==========================================================================
+
+            public static String getItemFullName( ItemStack item ) {
+            //----------------------------------------------------------------------
+                String error1 = "'ItemStack' has invalid 'ResourceLocation'";
+            //----------------------------------------------------------------------
+
+                ResourceLocation loc = item.getItem().getRegistryName();
+
+                if( null == loc ) throw new NullPointerException( error1 );
+
+            //----------------------------------------------------------------------
+
+                String name = loc.getResourceDomain() + '_' + loc.getResourcePath();
+
+            //----------------------------------------------------------------------
+
+                if( item.getHasSubtypes() ) name = name + '_' + item.getMetadata();
+
+            //----------------------------------------------------------------------
+                NBTTagCompound tag = item.getTagCompound();
+            //----------------------------------------------------------------------
+
+                if( null == item.getTagCompound() ) return name;
+
+            //----------------------------------------------------------------------
+
+                String extra = item.getTagCompound().toString();
+
+                extra = extra.replace( "\"", ""  ).replace( " " , ""  );
+                extra = extra.replace( "{" , ""  ).replace( "}" , ""  );
+                extra = extra.replace( ":" , "_" ).replace( "," , "_" );
+
+                return name + '_' + extra;
+
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
 
             String    name;
             ItemBlock item;
 
-        //==================================================================================
+        //==========================================================================
 
             ItemBlock getAsItem() { return this.item; }
 
-        //==================================================================================
+        //==========================================================================
 
-            Stem( int level , Material material , ItemStack item ) {
-            //------------------------------------------------------------------------------
-                super( material );
-            //------------------------------------------------------------------------------
+            public void Setup( String name ) {
+            //----------------------------------------------------------------------
 
-                ResourceLocation loc = item.getItem().getRegistryName();
-
-                if( null == loc ) return;
-
-                this.name = loc.getResourceDomain() + '_' + loc.getResourcePath() + '_'
-                          + item.getMetadata() + '_' + level + 'x';
-
-            //------------------------------------------------------------------------------
-
+                this.name = name;
                 this.item = new ItemBlock( this );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 this.setUnlocalizedName( this.name );
                 this.setRegistryName( this.name );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 this.item.setUnlocalizedName( this.name );
                 this.item.setRegistryName( this.name );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
+
+            Stem( Material material ) {
+            //----------------------------------------------------------------------
+                super( material );
+            //----------------------------------------------------------------------
+            }
+
+            Stem( Material material , String name ) {
+            //----------------------------------------------------------------------
+                super( material );
+            //----------------------------------------------------------------------
+
+                this.Setup( name );
+
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
 
         }
 
-        static class Compressed extends Stem {
+        public static class Compressed extends Stem {
 
-        //==================================================================================
+        //==========================================================================
 
-            ItemStack stem = null;
+            static final Block LEAVES = net.minecraft.init.Blocks.LEAVES;
 
-        //==================================================================================
+        //==========================================================================
+
+            ItemStack stem  = null;
+            Integer   level = 0;
+
+        //==========================================================================
 
             Compressed( int level , Material material , ItemStack item ) {
-            //------------------------------------------------------------------------------
-                super( level , material , item );
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                super( material );
+            //----------------------------------------------------------------------
 
-                this.stem = item;
+                this.level = level;
+                this.stem  = item;
+
                 this.setCreativeTab( CreativeTabs.MATERIALS );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 setHardness( 1.5f * level );
                 setResistance( 30f * level * level );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+
+                this.Setup( Stem.getItemFullName( item ) + '_' + this.level );
+
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+            @Override @SideOnly( Side.CLIENT ) @MethodsReturnNonnullByDefault
+        //==========================================================================
+
+            public BlockRenderLayer getBlockLayer() {
+            //----------------------------------------------------------------------
+
+                Block block = Block.getBlockFromItem( stem.getItem() );
+
+            //----------------------------------------------------------------------
+                Block AIR = net.minecraft.init.Blocks.AIR;
+            //----------------------------------------------------------------------
+
+                if( AIR != block ) return block.getBlockLayer();
+
+            //----------------------------------------------------------------------
+                return BlockRenderLayer.SOLID;
+            //----------------------------------------------------------------------
             }
 
         //==================================================================================
+/*
+            @SubscribeEvent public void getBlockLayer( FurnaceFuelBurnTimeEvent event ) {
+            //------------------------------------------------------------------------------
+
+                Integer burnTime   = stem.getItem().getItemBurnTime( stem );
+                Integer multiplier = (int) Math.pow( 9 , level );
+
+                event.setBurnTime( multiplier * burnTime );
+
+            //------------------------------------------------------------------------------
+            }//*/
+
+        //==========================================================================
+            @Override @SideOnly( Side.CLIENT ) @MethodsReturnNonnullByDefault
+            @ParametersAreNonnullByDefault
+        //==========================================================================
+
+            public int getLightValue(IBlockState s,IBlockAccess w,BlockPos p) {
+            //----------------------------------------------------------------------
+                if( null == stem ) return super.getLightValue( s , w , p );
+            //----------------------------------------------------------------------
+
+                Block block = Block.getBlockFromItem( stem.getItem() );
+
+            //----------------------------------------------------------------------
+                Block AIR = net.minecraft.init.Blocks.AIR;
+            //----------------------------------------------------------------------
+
+                if( AIR != block ) return block.getDefaultState().getLightValue();
+
+            //----------------------------------------------------------------------
+                return super.getLightValue( s , w , p );
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+            @Override @SideOnly( Side.CLIENT )
+        //==========================================================================
+
+            public boolean doesSideBlockRendering(IBlockState s,IBlockAccess w,
+            /*/////////////////////////////////*/ BlockPos    p,EnumFacing   f){
+            //----------------------------------------------------------------------
+                if( null == stem ) return true;
+            //----------------------------------------------------------------------
+
+                Block block = Block.getBlockFromItem( stem.getItem() );
+
+            //----------------------------------------------------------------------
+                Block AIR = net.minecraft.init.Blocks.AIR;
+            //----------------------------------------------------------------------
+
+                if( AIR != block ) return block.getDefaultState().isOpaqueCube();
+
+            //----------------------------------------------------------------------
+                return true;
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+            @Override @MethodsReturnNonnullByDefault
+        //==========================================================================
+
+            public SoundType getSoundType( IBlockState s , World  w ,
+            /*//////////////////////////*/ BlockPos    p , Entity e ) {
+            //------------------------------------------------------------------
+                if( null == stem ) return LEAVES.getSoundType( s , w , p , e );
+            //------------------------------------------------------------------
+
+                Block block = Block.getBlockFromItem( stem.getItem() );
+
+            //----------------------------------------------------------------------
+                Block AIR = net.minecraft.init.Blocks.AIR;
+            //----------------------------------------------------------------------
+
+                if( AIR != block ) return block.getSoundType( s , w , p , e );
+
+            //----------------------------------------------------------------------
+                return block.getSoundType( s , w , p , e );
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
 
         }
 
-    //======================================================================================
+    //==============================================================================
 
     }
 
-//==========================================================================================
+//==================================================================================
 

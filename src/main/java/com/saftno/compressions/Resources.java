@@ -1,8 +1,8 @@
-//==========================================================================================
+//==================================================================================
 
     package com.saftno.compressions;
 
-//==========================================================================================
+//==================================================================================
 
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.resources.ResourcePackRepository;
@@ -10,7 +10,7 @@
     import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
     import org.apache.commons.io.FileUtils;
 
-//==========================================================================================
+//==================================================================================
 
     import java.io.File;
     import java.io.FileOutputStream;
@@ -23,95 +23,108 @@
     import java.nio.file.Files;
     import java.util.ArrayList;
     import java.util.Arrays;
+    import java.util.List;
+    import java.util.function.Function;
     import java.util.stream.Collectors;
 
-//==========================================================================================
+//==================================================================================
+    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+//==================================================================================
 
-    @SuppressWarnings( "WeakerAccess" ) class Resources {
+    public class Resources {
 
-    //======================================================================================
+    //==============================================================================
 
-        static Path tmpPath;
-        static Path modPath;
+        public static Path tmpPath;
+        public static Path modPath;
 
-        static FileSystem tmp;
-        static FileSystem mod;
+        public static FileSystem tmp;
+        public static FileSystem mod;
 
-        static Boolean tmpEmpty;
+        public static Boolean tmpEmpty;
 
-    //======================================================================================
+    //==============================================================================
 
-        static void Append( String data , Path path ) { try {
-        //----------------------------------------------------------------------------------
+        public static void Append( String data , Path path ) { try {
+        //--------------------------------------------------------------------------
             if( Files.exists( path ) ) {
-        //----------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------
 
-                data += Files.newBufferedReader(path).lines().collect(Collectors.joining());
+                data += Files.newBufferedReader( path )
+                             .lines()
+                             .collect( Collectors.joining() );
 
-        //----------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------
             }
-        //----------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------
 
-            Write( data , path );
+            Resources.Write( data , path );
 
-        //----------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------
         } catch ( IOException e ) { e.printStackTrace(); }}
 
-        static void Write( String data , Path path ) { try {
-        //----------------------------------------------------------------------------------
-            if(   Files.exists( path )   ) Files.delete( path );
-            if( null != path.getParent() ) Files.createDirectories( path.getParent() );
-        //----------------------------------------------------------------------------------
+        public static void Write ( String data , Path path ) { try {
+        //--------------------------------------------------------------------------
+            if(  Files.exists( path )  ) Files.delete( path );
+            if(null != path.getParent()) Files.createDirectories(path.getParent());
+        //--------------------------------------------------------------------------
 
             OutputStream output = Files.newOutputStream( path );
 
-        //----------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------
 
             output.write( data.getBytes() );
 
-        //----------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------
 
             output.flush();
             output.close();
 
-        //----------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------
         } catch ( IOException e ) { e.printStackTrace(); }}
 
-    //======================================================================================
+    //==============================================================================
 
-        static class Initialization {
+        public static class Initialization {
 
-        //==================================================================================
+        //==========================================================================
 
-            static void Pre(@SuppressWarnings("unused")FMLPreInitializationEvent event){try{
-            //------------------------------------------------------------------------------
+            public static void Pre( FMLPreInitializationEvent event ) { try {
+            //----------------------------------------------------------------------
 
                 String[] files = new File( Base.root + "/mods/" ).list();
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
                 if( null == files ) return;
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
-                ArrayList<String> mods  = new ArrayList<>( Arrays.asList( files ) );
+                ArrayList<String> mods = new ArrayList<>( Arrays.asList( files ) );
 
                 mods.removeIf( file -> !file.contains( Base.name ) );
+                mods.add( "" );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                String tmpName = Base.root + "/resourcepacks/" + Base.name + ".zip";
+            //----------------------------------------------------------------------
 
-                tmpPath = Paths.get(Base.root + "/resourcepacks/" + Base.name + ".zip");
+                tmpPath = Paths.get( tmpName );
 
-                if(  mods.isEmpty() ) modPath = tmpPath;
-                if( !mods.isEmpty() ) modPath = Paths.get(Base.root+"/mods/"+mods.get(0));
+            //----------------------------------------------------------------------
+                String modName = Base.root + "/mods/" + mods.get( 0 );
+            //----------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
+                if( 1 == mods.size() ) modPath = tmpPath;
+                if( 2 == mods.size() ) modPath = Paths.get( modName );
+
+            //----------------------------------------------------------------------
 
                 FileUtils.deleteQuietly( tmpPath.toFile() );
                 FileUtils.touch( tmpPath.toFile() );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
-                final byte[] empty = {80 , 75 , 5 , 6 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-                                       0 ,  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 };
+                byte[] empty = { 80 , 75 , 5 , 6 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
+                                  0 ,  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 };
 
                 OutputStream zipStream = new FileOutputStream( tmpPath.toFile() );
 
@@ -120,43 +133,55 @@
                 zipStream.flush();
                 zipStream.close();
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 tmp = FileSystems.newFileSystem( tmpPath , null );
                 mod = FileSystems.newFileSystem( modPath , null );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
-                String data ="{ 'pack': { 'pack_format': 3, 'description': 'Temporary' } }";
-                data = data.replace( "'" , "\"" );
+                String packData = String.join( "\n" , new String[] {
+                //------------------------------------------------------------------
+                    "{ 'pack' : { 'pack_format' : 3                " ,
+                    "           , 'description' : 'Temporary' } } " ,
+                //------------------------------------------------------------------
+                } ).replace( "'" , "\"" );
 
-                Path meta = tmp.getPath( "pack.mcmeta" );
-                if( !Files.exists( meta ) ) Write( data , meta );
+            //----------------------------------------------------------------------
+                Path packPath = tmp.getPath( "pack.mcmeta" );
+            //----------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
+                if( !Files.exists( packPath ) ) Write( packData , packPath );
 
-                if( mods.isEmpty() ) mod.close();
-                if( mods.isEmpty() ) mod = null;
+            //----------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
+                if( modPath == tmpPath ) mod.close();
+                if( modPath == tmpPath ) mod = null;
+
+            //----------------------------------------------------------------------
+
+                tmp.close();
+                tmp = FileSystems.newFileSystem( tmpPath , null );
+
+            //----------------------------------------------------------------------
             } catch ( IOException e ) { e.printStackTrace(); } }
 
-        //==================================================================================
+        //==========================================================================
 
         }
 
-        static class Generation {
+        public static class Generation {
 
-        //==================================================================================
+        //==========================================================================
 
-            static void Flush() { try {
-            //------------------------------------------------------------------------------
+            public static void Flush() { try {
+            //----------------------------------------------------------------------
                 if( null == tmp ) return;
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
-                tmpEmpty = !Files.exists( tmp.getPath( Languages.file ) );
+                tmpEmpty = !Files.exists( tmp.getPath( "assets" ) );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 if( null != mod ) mod.close();
                 if( null != tmp ) tmp.close();
@@ -166,7 +191,7 @@
 
                 if( tmpEmpty ) return;
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 mod = FileSystems.newFileSystem( modPath , null );
                 tmp = FileSystems.newFileSystem( tmpPath , null );
@@ -174,78 +199,78 @@
                 if( modPath == tmpPath ) mod.close();
                 if( modPath == tmpPath ) mod = null;
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             } catch ( IOException e ) { e.printStackTrace(); } }
 
-        //==================================================================================
+        //==========================================================================
 
         }
 
-        static class Registration {
+        public static class Registration {
 
-        //==================================================================================
+        //==========================================================================
 
-            static void Packs() { try {
-            //------------------------------------------------------------------------------
+            public static void Packs() { try {
+            //----------------------------------------------------------------------
 
                 if( null != mod ) mod.close();
                 if( null != tmp ) tmp.close();
 
-                // Don't put tmp.close() near Minecraft.getMinecraft().refreshResources(),
-                // as it refreshes before the file IO finishes, you get a broken pack
+                // Don't put tmp.close() near Minecraft.getMinecraft()
+                // .refreshResources(), as it refreshes before the file IO
+                // finishes, you get a broken pack
+                // Also mod might be the same as tmp, so close it first
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 ResourcePackRepository repo;
 
                 repo = Minecraft.getMinecraft().getResourcePackRepository();
                 repo.updateRepositoryEntriesAll();
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
-                ArrayList<Entry> all = new ArrayList<>( repo.getRepositoryEntriesAll() );
-                ArrayList<Entry> on  = new ArrayList<>( repo.getRepositoryEntries()    );
+                List<Entry> all = new ArrayList<>( repo.getRepositoryEntriesAll() );
+                List<Entry> on  = new ArrayList<>( repo.getRepositoryEntries()    );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                Function<Entry, Boolean> our = ( entry ) -> {
+                //------------------------------------------------------------------
+                    String name = entry.getResourcePackName();
 
-                Entry Compressions = null;
+                    return name.contains( Base.name );
+                //------------------------------------------------------------------
+                };
+            //----------------------------------------------------------------------
 
-                for( Entry entry : on ) {
-                    if( entry.getResourcePackName().contains( Base.name ) ) {
-                        Compressions = entry;
-                    }
-                }
+                Entry pack = null;
 
-                for( Entry entry : all ) {
-                    if( entry.getResourcePackName().contains( Base.name ) ) {
-                        Compressions = entry;
-                    }
-                }
+                for( Entry entry: on  ) { if( our.apply(entry) ) { pack = entry; } }
+                for( Entry entry: all ) { if( our.apply(entry) ) { pack = entry; } }
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 if( tmpEmpty ) FileUtils.deleteQuietly( tmpPath.toFile() );
 
-                if(  tmpEmpty &&  on.contains( Compressions ) ) on.remove( Compressions );
-                if( !tmpEmpty && !on.contains( Compressions ) ) on.add( Compressions );
+                if(  tmpEmpty &&  on.contains( pack ) ) on.remove( pack );
+                if( !tmpEmpty && !on.contains( pack ) ) on.add( pack );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 repo.setRepositories( on );
                 repo.updateRepositoryEntriesAll();
 
                 Minecraft.getMinecraft().refreshResources();
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             } catch ( IOException e ) { e.printStackTrace(); } }
 
-        //==================================================================================
+        //==========================================================================
 
         }
 
-    //======================================================================================
+    //==============================================================================
 
     }
 
-//==========================================================================================
-
+//==================================================================================

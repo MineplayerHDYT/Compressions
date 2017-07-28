@@ -1,10 +1,11 @@
-//==========================================================================================
+//==================================================================================
 
     package com.saftno.compressions;
 
-//==========================================================================================
+//==================================================================================
 
     import net.minecraft.client.Minecraft;
+    import net.minecraft.client.resources.Language;
     import net.minecraft.client.resources.LanguageManager;
     import net.minecraft.item.ItemStack;
     import net.minecraft.util.ResourceLocation;
@@ -12,136 +13,142 @@
     import org.apache.commons.io.IOUtils;
     import org.apache.commons.lang3.StringUtils;
 
-//==========================================================================================
+//==================================================================================
 
     import java.io.IOException;
     import java.io.InputStream;
     import java.nio.file.FileSystem;
     import java.nio.file.Files;
 
-//==========================================================================================
+//==================================================================================
+    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+//==================================================================================
 
-    @SuppressWarnings( "WeakerAccess" ) class Languages {
+    public class Languages {
 
-    //======================================================================================
+    //==============================================================================
 
-        static String file = "";
-        static String fileLegacy = "";
+        public static String fNew = "";
+        public static String fOld = "";
 
-    //======================================================================================
+    //==============================================================================
 
-        static class Initialization {
+        public static class Initialization {
 
-        //==================================================================================
+        //==========================================================================
 
-            static void Pre( @SuppressWarnings("unused") FMLPreInitializationEvent event ) {
-            //------------------------------------------------------------------------------
+            public static void Pre( FMLPreInitializationEvent event ) {
+            //----------------------------------------------------------------------
+                Minecraft minecraft = Minecraft.getMinecraft();
+            //----------------------------------------------------------------------
+                LanguageManager manager  = minecraft.getLanguageManager();
+                Language        language = manager.getCurrentLanguage();
+                String          code     = language.getLanguageCode();
+            //----------------------------------------------------------------------
 
-                LanguageManager manager = Minecraft.getMinecraft().getLanguageManager();
-                String          code    = manager.getCurrentLanguage().getLanguageCode();
+                String front = code.split( "_" )[0];
+                String back  = code.split( "_" )[1];
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
-                code = code.split( "_" )[0] + "_" + code.split( "_" )[1].toLowerCase();
+                code = front + "_" + back.toLowerCase();
 
-                file = "/assets/" + Base.modId + "/lang/" + code + ".lang";
+                fNew = "/assets/" + Base.modId + "/lang/" + code + ".lang";
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
-                code = code.split( "_" )[0] + "_" + code.split( "_" )[1].toUpperCase();
+                code = front + "_" + back.toUpperCase();
 
-                fileLegacy = "/assets/" + Base.modId + "/lang/" + code + ".lang";
+                fOld = "/assets/" + Base.modId + "/lang/" + code + ".lang";
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             }
 
-        //==================================================================================
+        //==========================================================================
 
         }
 
-        static class Generation {
+        public static class Generation {
 
-        //==================================================================================
+        //==========================================================================
 
-            static void LANG() { try {
-            //------------------------------------------------------------------------------
+            public static void LANG() { try {
+            //----------------------------------------------------------------------
+                if( Blocks.compressions.isEmpty() ) return;
+            //----------------------------------------------------------------------
 
                 FileSystem mod = Resources.mod;
                 FileSystem tmp = Resources.tmp;
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 String previous = "";
 
-            //------------------------------------------------------------------------------
-                if( null != mod ) { if( Files.exists( mod.getPath( file ) ) ) {
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                if( null != mod ) { if( Files.exists( mod.getPath( fNew ) ) ) {
+            //----------------------------------------------------------------------
 
-                    InputStream input = Files.newInputStream( mod.getPath( file ) );
+                    InputStream input = Files.newInputStream( mod.getPath( fNew ) );
 
                     previous = IOUtils.toString( input , "utf-8" );
 
                     input.close();
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
                 } }
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
                 String entries = "";
 
-                int L1 = Blocks.Generation.blocks.length;
-                int L2 = Configurations.getDepth() + 1;
+            //----------------------------------------------------------------------
+                for( Blocks.Compressed block : Blocks.compressions ) {
+            //----------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
-                for( int y = 0; y < L1; y++ ) { for( int x = 1; x < L2; x++ ) {
-            //------------------------------------------------------------------------------
+                    ItemStack base = block.stem;
 
-                    Blocks.Compressed stack = Blocks.Generation.blocks[y][x];
-                    ItemStack base  = stack.stem;
+                //------------------------------------------------------------------
 
-                //--------------------------------------------------------------------------
-
-                    ResourceLocation loc = stack.getRegistryName();
+                    ResourceLocation loc = block.getRegistryName();
 
                     if( null == loc ) return;
 
                     String name = loc.getResourcePath();
-                    String desc = x + "x " + base.getDisplayName();
+                    String desc = block.level + "x " + base.getDisplayName();
 
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
 
                     if( previous.contains( "tile." + name + ".name=" ) ) continue;
 
-                //--------------------------------------------------------------------------
+                //------------------------------------------------------------------
 
-                    entries = entries.concat( "\n" + "tile." + name + ".name=" + desc );
+                    entries = entries.concat( "\ntile." + name + ".name=" + desc );
 
-            //------------------------------------------------------------------------------
-                } }
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
+                }
+            //----------------------------------------------------------------------
 
                 if( entries.isEmpty() ) return;
 
-                entries = "\n" + entries + "\n\n#" + StringUtils.repeat("=" , 99);
+                entries = "\n" + entries + "\n\n#" + StringUtils.repeat( "=" , 99 );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
 
-                if( null != mod ) Resources.Append( entries , mod.getPath( file ) );
-                if( null != mod ) Resources.Append( entries , mod.getPath( fileLegacy ) );
+                if( null != mod ) Resources.Append( entries , mod.getPath( fNew ) );
+                if( null != mod ) Resources.Append( entries , mod.getPath( fOld ) );
 
-                if( null != tmp ) Resources.Append( entries , tmp.getPath( file ) );
-                if( null != tmp ) Resources.Append( entries , tmp.getPath( fileLegacy ) );
+                if( null != tmp ) Resources.Append( entries , tmp.getPath( fNew ) );
+                if( null != tmp ) Resources.Append( entries , tmp.getPath( fOld ) );
 
-            //------------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             } catch ( IOException e ) { e.printStackTrace(); } }
 
-        //==================================================================================
+        //==========================================================================
 
         }
 
-    //======================================================================================
+    //==============================================================================
 
     }
 
-//==========================================================================================
+//==================================================================================
 
