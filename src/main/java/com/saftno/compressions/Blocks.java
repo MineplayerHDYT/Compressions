@@ -26,7 +26,9 @@
     import net.minecraft.world.World;
     import net.minecraftforge.client.event.ModelRegistryEvent;
     import net.minecraftforge.event.RegistryEvent.Register;
+    import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
     import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+    import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
     import net.minecraftforge.fml.relauncher.Side;
     import net.minecraftforge.fml.relauncher.SideOnly;
@@ -96,7 +98,7 @@
 
                 for( Stem block : blocks ) registry.register( block.getAsItem() );
 
-            //--------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             }
 
         //==========================================================================
@@ -108,12 +110,19 @@
 
                 ArrayList<IRecipe> crafting = new ArrayList<>();
 
-                if(null==Resources.mod)crafting.addAll(Recipes.Generation.Compression()  );
-                if(null==Resources.mod)crafting.addAll(Recipes.Generation.Decompression());
+            //----------------------------------------------------------------------
 
-                for( IRecipe recipe : crafting ) { event.getRegistry().register( recipe ); }
+                if( null == Resources.mod )
+                    crafting.addAll( Recipes.Generation.Compression() );
 
-            //--------------------------------------------------------------------------
+                if( null == Resources.mod )
+                    crafting.addAll( Recipes.Generation.Decompression() );
+
+            //----------------------------------------------------------------------
+
+                for( IRecipe recipe : crafting ) { registry.register( recipe ); }
+
+            //----------------------------------------------------------------------
 
                 ArrayList<Recipes.Furnace> furnace = new ArrayList<>();
 
@@ -125,7 +134,7 @@
                                 recipe.output ,
                                 recipe.experience );
 
-            //--------------------------------------------------------------------------
+            //----------------------------------------------------------------------
             }
 
         //==========================================================================
@@ -254,7 +263,7 @@
                 NonNullList<ItemStack> entries = NonNullList.create();
 
             //----------------------------------------------------------------------
-                String[] IDs = Configurations.getIDs();
+                String[] IDs = Configurations.getSingleIDs();
             //----------------------------------------------------------------------
 
                 for( String ID : IDs ) entries.addAll( getAllItems( ID ) );
@@ -270,12 +279,12 @@
 
                     Compressed block = getCompressed( x + 1 , entries.get( y ) );
 
-                //----------------------------------------------------------------------
+                //------------------------------------------------------------------
 
                     Blocks.blocks.add( block );
                     Blocks.compressions.add( block );
 
-                //----------------------------------------------------------------------
+                //------------------------------------------------------------------
 
                     ForgeRegistries.BLOCKS.register( block );
 
@@ -341,7 +350,7 @@
 
         //==========================================================================
 
-            public void Setup( String name ) {
+            public void Setup( String name , Compressed stem ) {
             //----------------------------------------------------------------------
 
                 this.name = name;
@@ -365,16 +374,6 @@
             Stem( Material material ) {
             //----------------------------------------------------------------------
                 super( material );
-            //----------------------------------------------------------------------
-            }
-
-            Stem( Material material , String name ) {
-            //----------------------------------------------------------------------
-                super( material );
-            //----------------------------------------------------------------------
-
-                this.Setup( name );
-
             //----------------------------------------------------------------------
             }
 
@@ -412,7 +411,11 @@
 
             //----------------------------------------------------------------------
 
-                this.Setup( Stem.getItemFullName( item ) + '_' + this.level );
+                this.Setup( Stem.getItemFullName(item) + '_' + this.level , this );
+
+            //----------------------------------------------------------------------
+
+                //MinecraftForge.EVENT_BUS.register( this );
 
             //----------------------------------------------------------------------
             }
@@ -437,18 +440,24 @@
             //----------------------------------------------------------------------
             }
 
-        //==================================================================================
-/*
-            @SubscribeEvent public void getBlockLayer( FurnaceFuelBurnTimeEvent event ) {
-            //------------------------------------------------------------------------------
+        //==========================================================================
+            @SubscribeEvent
+        //==========================================================================
 
+            public void getBurnTime( FurnaceFuelBurnTimeEvent event ) {
+            //----------------------------------------------------------------------
+
+                Integer count      = event.getItemStack().getCount();
                 Integer burnTime   = stem.getItem().getItemBurnTime( stem );
                 Integer multiplier = (int) Math.pow( 9 , level );
 
-                event.setBurnTime( multiplier * burnTime );
+            //----------------------------------------------------------------------
 
-            //------------------------------------------------------------------------------
-            }//*/
+                if( burnTime < 0 ) event.setBurnTime( -1 );
+                if( burnTime > 0 ) event.setBurnTime( count*multiplier*burnTime );
+
+            //----------------------------------------------------------------------
+            }
 
         //==========================================================================
             @Override @SideOnly( Side.CLIENT ) @MethodsReturnNonnullByDefault
