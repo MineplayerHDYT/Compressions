@@ -9,6 +9,7 @@
     import net.minecraft.block.SoundType;
     import net.minecraft.block.material.Material;
     import net.minecraft.block.state.IBlockState;
+    import net.minecraft.client.Minecraft;
     import net.minecraft.creativetab.CreativeTabs;
     import net.minecraft.entity.Entity;
     import net.minecraft.item.Item;
@@ -16,6 +17,7 @@
     import net.minecraft.item.ItemStack;
     import net.minecraft.item.crafting.FurnaceRecipes;
     import net.minecraft.item.crafting.IRecipe;
+    import net.minecraft.item.crafting.Ingredient;
     import net.minecraft.nbt.NBTTagCompound;
     import net.minecraft.util.BlockRenderLayer;
     import net.minecraft.util.EnumFacing;
@@ -37,7 +39,7 @@
 //==================================================================================
 
     import javax.annotation.ParametersAreNonnullByDefault;
-    import java.util.ArrayList;
+    import java.util.*;
 
 //==================================================================================
     @SuppressWarnings( { "WeakerAccess" , "unused" } )
@@ -73,12 +75,17 @@
 
         public static class Registration {
 
+            public static IForgeRegistry<Block> blockReg;
+            public static IForgeRegistry<Item>  itemReg;
+
         //==========================================================================
 
             public static void Blocks( Register<Block> event ) {
             //----------------------------------------------------------------------
                 IForgeRegistry<Block> registry = event.getRegistry();
             //----------------------------------------------------------------------
+
+                blockReg = registry;
 
                 for( Stem block : blocks ) registry.register( block );
 
@@ -90,11 +97,14 @@
             public static void Items( Register<Item> event ) {
             //----------------------------------------------------------------------
 
-                Generation.Compressed();
+                Generation.CompressedSingle();
+                Generation.CompressedRelated();
 
             //----------------------------------------------------------------------
                 IForgeRegistry<Item> registry = event.getRegistry();
             //----------------------------------------------------------------------
+
+                itemReg = registry;
 
                 for( Stem block : blocks ) registry.register( block.getAsItem() );
 
@@ -105,10 +115,19 @@
 
             public static void Recipes( Register<IRecipe> event ) {
             //----------------------------------------------------------------------
+
+                Generation.CompressedRelated();
+
+                //for( Stem block: blocks ) Base.proxy.registerBlockRenderer(
+                //        block );
+
+            //----------------------------------------------------------------------
                 IForgeRegistry<IRecipe> registry = event.getRegistry();
             //----------------------------------------------------------------------
 
                 ArrayList<IRecipe> crafting = new ArrayList<>();
+
+
 
             //----------------------------------------------------------------------
 
@@ -155,7 +174,7 @@
 
         //==========================================================================
 
-            public static NonNullList<ItemStack> getAllItems( String ID ) {
+            public static NonNullList<ItemStack> getSingleItems( String ID ) {
             //----------------------------------------------------------------------
 
                 NonNullList<ItemStack> items = NonNullList.create();
@@ -233,6 +252,67 @@
             //----------------------------------------------------------------------
             }
 
+            public static NonNullList<ItemStack> getRelatedItems( String ID ) {
+            //----------------------------------------------------------------------
+                Set<ItemStack>       related = new HashSet<>();
+                NonNullList<IRecipe> recipes = NonNullList.create();
+            //----------------------------------------------------------------------
+
+                NonNullList<ItemStack> bases = getSingleItems( ID );
+
+            //----------------------------------------------------------------------
+                for( IRecipe recipe : ForgeRegistries.RECIPES.getValues() ) {
+            //----------------------------------------------------------------------
+                    for( Ingredient input : recipe.getIngredients() ) {
+                //------------------------------------------------------------------
+
+                        ItemStack[] items = input.getMatchingStacks();
+
+                        if( 0 == items.length ) continue;
+
+                    //--------------------------------------------------------------
+                        for( ItemStack base : bases ) {
+                    //--------------------------------------------------------------
+
+                            String name1 = Stem.getItemFullName( items[0] );
+                            String name2 = Stem.getItemFullName( base );
+
+                            if( name1.equals( name2 ) ) recipes.add( recipe );
+
+            //----------------------------------------------------------------------
+                } } } for( IRecipe recipe : recipes ) {
+            //----------------------------------------------------------------------
+
+                    related.add( recipe.getRecipeOutput() );
+
+            //----------------------------------------------------------------------
+                    for( Ingredient input : recipe.getIngredients() ) {
+            //----------------------------------------------------------------------
+
+                        ItemStack[] items = input.getMatchingStacks();
+
+                        if( 0 == items.length ) continue;
+
+                    //----------------------------------------------------------------------
+
+                        String name = "" + items[0].getItem().getRegistryName();
+
+                        related.addAll( getSingleItems( name ) );
+
+            //----------------------------------------------------------------------
+                } }
+            //----------------------------------------------------------------------
+
+                NonNullList<ItemStack> stacks = NonNullList.create();
+                stacks.addAll( related );
+
+            //----------------------------------------------------------------------
+                return stacks;
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
             public static Compressed getCompressed(int stage, ItemStack itemStack) {
             //----------------------------------------------------------------------
 
@@ -257,16 +337,16 @@
 
         //==========================================================================
 
-            public static void Compressed() {
+            public static void CompressedSingle() {
             //----------------------------------------------------------------------
 
                 NonNullList<ItemStack> entries = NonNullList.create();
 
             //----------------------------------------------------------------------
-                String[] IDs = Configurations.getSingleIDs();
+                String[] singleIDs  = Configurations.getSingleIDs();
             //----------------------------------------------------------------------
 
-                for( String ID : IDs ) entries.addAll( getAllItems( ID ) );
+                for( String ID : singleIDs ) entries.addAll( getSingleItems( ID ) );
 
             //----------------------------------------------------------------------
 
@@ -287,6 +367,58 @@
                 //------------------------------------------------------------------
 
                     ForgeRegistries.BLOCKS.register( block );
+
+            //----------------------------------------------------------------------
+                } }
+            //----------------------------------------------------------------------
+            }
+
+            public static void CompressedRelated() {
+            //----------------------------------------------------------------------
+
+                NonNullList<ItemStack> entries = NonNullList.create();
+
+            //----------------------------------------------------------------------
+                String[]        relatedIDs     = Configurations.getRelatedIDs();
+                List<ItemStack> relatedItems   = Items.getAll( relatedIDs );
+                List<IRecipe>   relatedRecipes = Recipes.getRelated( relatedItems );
+            //----------------------------------------------------------------------
+
+                entries.addAll( Items.getAll( relatedRecipes ) );
+
+            //----------------------------------------------------------------------
+
+                int L1 = entries.size();
+                int L2 = Configurations.getDepth();
+
+            //----------------------------------------------------------------------
+                for( int y = 0; y < L1; y++ ) { for( int x = 0; x < L2; x++ ) {
+            //----------------------------------------------------------------------
+
+                    Compressed block = getCompressed( x + 1 , entries.get( y ) );
+                    ResourceLocation loc = block.getRegistryName();
+
+                //------------------------------------------------------------------
+                    if( ForgeRegistries.BLOCKS.containsKey( loc ) ) continue;
+                //------------------------------------------------------------------
+
+                    Blocks.blocks.add( block );
+                    Blocks.compressions.add( block );
+
+                //------------------------------------------------------------------
+
+                    IForgeRegistry<Item> Items = ForgeRegistries.ITEMS;
+                    ResourceLocation Location = block.getAsItem().getRegistryName();
+
+                //------------------------------------------------------------------
+                    if( Items.containsKey( Location ) ) continue;
+                //------------------------------------------------------------------
+
+                    //Registration.itemReg.register( block.getAsItem() );
+                    Registration.blockReg.register( block );
+
+                    //ForgeRegistries.ITEMS.register( block.getAsItem() );
+                    //ForgeRegistries.BLOCKS.register( block );
 
             //----------------------------------------------------------------------
                 } }
@@ -410,8 +542,10 @@
                 setResistance( 30f * level * level );
 
             //----------------------------------------------------------------------
+                String name = Stem.getItemFullName( item );
+            //----------------------------------------------------------------------
 
-                this.Setup( Stem.getItemFullName(item) + '_' + this.level , this );
+                this.Setup( name + '_' + this.level + 'x' , this );
 
             //----------------------------------------------------------------------
 

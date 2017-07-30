@@ -5,11 +5,17 @@
 //==================================================================================
 
     import net.minecraft.block.Block;
+    import net.minecraft.client.Minecraft;
+    import net.minecraft.client.renderer.block.model.IBakedModel;
+    import net.minecraft.client.renderer.block.model.ModelResourceLocation;
     import net.minecraft.item.Item;
     import net.minecraft.item.crafting.IRecipe;
+    import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent;
     import net.minecraftforge.client.event.GuiScreenEvent.InitGuiEvent;
+    import net.minecraftforge.client.event.ModelBakeEvent;
     import net.minecraftforge.client.event.ModelRegistryEvent;
+    import net.minecraftforge.client.model.ModelLoader;
     import net.minecraftforge.event.RegistryEvent.Register;
     import net.minecraftforge.fml.common.Mod;
     import net.minecraftforge.fml.common.SidedProxy;
@@ -123,19 +129,6 @@
                 Blocks.Registration.Items( event );
 
             //----------------------------------------------------------------------
-
-                Languages.Generation.LANG();
-
-            //----------------------------------------------------------------------
-                Resources.Generation.Flush();
-            //----------------------------------------------------------------------
-
-                Recipes.Generation.JSON();
-                Models.Generation.Blockstates();
-
-            //----------------------------------------------------------------------
-                Resources.Generation.Flush();
-            //----------------------------------------------------------------------
             }
 
         //==========================================================================
@@ -145,7 +138,11 @@
             public static void regRecipes( Register<IRecipe> event ) {
             //----------------------------------------------------------------------
 
+                forgeEndScreen = Textures.GrabScreen();
                 Blocks.Registration.Recipes( event );
+                forgeEndScreen = null;
+
+            //----------------------------------------------------------------------
 
             //----------------------------------------------------------------------
             }
@@ -162,6 +159,17 @@
             //----------------------------------------------------------------------
             }
 
+            public static ModelBakeEvent bk;
+
+            @SubscribeEvent public static void regtest( ModelBakeEvent event ) {
+            //----------------------------------------------------------------------
+
+                bk = event;
+
+
+            //----------------------------------------------------------------------
+            }
+
         //==========================================================================
             @SubscribeEvent
         //==========================================================================
@@ -171,7 +179,42 @@
                 if( once ) return;
             //----------------------------------------------------------------------
 
+                Languages.Generation.LANG();
+
+                //----------------------------------------------------------------------
+                Resources.Generation.Flush();
+                //----------------------------------------------------------------------
+
+                Recipes.Generation.JSON();
+                Models.Generation.Blockstates();
+                //Models.Generation.Models();
                 Textures.Generation.Blocks();
+
+                //----------------------------------------------------------------------
+                Resources.Generation.Flush();
+                //----------------------------------------------------------------------
+
+
+
+                for( Blocks.Stem block : Blocks.blocks ) {
+
+                    ResourceLocation rLoc = block.getRegistryName();
+                    ModelResourceLocation mrLoc = new ModelResourceLocation(rLoc,
+                            "inventory");
+                    ModelResourceLocation mrLoc2 = new ModelResourceLocation(rLoc,
+                            "gui");
+
+                    //----------------------------------------------------------------------
+
+                    Item item = block.getAsItem();
+                    //event.getModelLoader().setupModelRegistry();
+                    ModelLoader.setCustomModelResourceLocation( item , 0 , mrLoc );
+                    ModelLoader.setCustomModelResourceLocation( item , 0 , mrLoc2 );
+                    IBakedModel mod = bk.getModelManager().getModel(mrLoc);
+
+                    bk.getModelRegistry().putObject(mrLoc , mod);
+
+                }
 
             //----------------------------------------------------------------------
 

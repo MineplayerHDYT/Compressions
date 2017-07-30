@@ -10,14 +10,14 @@
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+    import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 //==================================================================================
 
     import java.io.File;
+    import java.lang.reflect.Array;
     import java.nio.file.FileSystem;
-    import java.util.ArrayList;
-    import java.util.Arrays;
-    import java.util.Set;
+    import java.util.*;
 
 //==================================================================================
     @SuppressWarnings( { "WeakerAccess" , "unused" } )
@@ -29,6 +29,46 @@
 
         public static String compressing;
         public static String decompressing;
+
+    //==============================================================================
+
+        public static List<IRecipe> getRelated( List<ItemStack> items ) {
+        //--------------------------------------------------------------------------
+            List<IRecipe> recipes = new ArrayList<>();
+        //--------------------------------------------------------------------------
+
+            Set<String> IDs = new HashSet<>();
+
+        //--------------------------------------------------------------------------
+            for( IRecipe recipe : ForgeRegistries.RECIPES.getValues() ) {
+        //--------------------------------------------------------------------------
+                for( Ingredient input : recipe.getIngredients() ) {
+            //----------------------------------------------------------------------
+                    for( ItemStack stack : input.getMatchingStacks() ) {
+                //------------------------------------------------------------------
+                        for( ItemStack item : items ) {
+                    //--------------------------------------------------------------
+
+                            String name1 = Blocks.Stem.getItemFullName( stack );
+                            String name2 = Blocks.Stem.getItemFullName( item );
+
+                            if( !name1.equals( name2 ) ) continue;
+
+                        //--------------------------------------------------------------
+
+                            String ID = recipe.getRegistryName().toString();
+
+                            if(  IDs.contains( ID ) ) continue;
+                            if( !IDs.contains( ID ) ) IDs.add( ID );
+
+                        //--------------------------------------------------------------
+
+                            recipes.add( recipe );
+
+        //--------------------------------------------------------------------------
+            } } } } return recipes;
+        //--------------------------------------------------------------------------
+        }
 
     //==============================================================================
 
@@ -367,6 +407,9 @@
 
             //----------------------------------------------------------------------
                 } prev = blok; } }
+
+        //==========================================================================
+
 
         //==========================================================================
 
