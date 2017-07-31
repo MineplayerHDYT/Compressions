@@ -9,6 +9,7 @@
     import net.minecraft.client.renderer.block.model.IBakedModel;
     import net.minecraft.client.renderer.block.model.ModelResourceLocation;
     import net.minecraft.item.Item;
+    import net.minecraft.item.ItemStack;
     import net.minecraft.item.crafting.IRecipe;
     import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent;
@@ -66,8 +67,6 @@
 
         public static void initPre( FMLPreInitializationEvent event ) {
         //--------------------------------------------------------------------------
-
-            Logging.Initialization.Pre( event );
 
         //--------------------------------------------------------------------------
             Logging.info( name + " is loading" );
@@ -187,7 +186,7 @@
 
                 Recipes.Generation.JSON();
                 Models.Generation.Blockstates();
-                //Models.Generation.Models();
+                Models.Generation.Models();
                 Textures.Generation.Blocks();
 
                 //----------------------------------------------------------------------
@@ -207,14 +206,27 @@
                     //----------------------------------------------------------------------
 
                     Item item = block.getAsItem();
-                    //event.getModelLoader().setupModelRegistry();
-                    ModelLoader.setCustomModelResourceLocation( item , 0 , mrLoc );
-                    ModelLoader.setCustomModelResourceLocation( item , 0 , mrLoc2 );
-                    IBakedModel mod = bk.getModelManager().getModel(mrLoc);
 
-                    bk.getModelRegistry().putObject(mrLoc , mod);
+                    ItemStack stack = new ItemStack( item , 1 , 0 );
+                    IBakedModel model = Minecraft.getMinecraft().getRenderItem()
+                            .getItemModelMesher().getItemModel( stack );
+
+                    String name = model.toString();
+                    if( name.contains( "FancyMissingModel" ) ) continue;
+
+                    Minecraft.getMinecraft().getRenderItem()
+                            .getItemModelMesher().register( item , 0 , mrLoc );
+
+                    //ModelLoader.setCustomModelResourceLocation( item , 0 ,
+                    // mrLoc );
+                    //ModelLoader.setCustomModelResourceLocation( item , 0 ,
+                    //        mrLoc2 );
+                    //IBakedModel mod = bk.getModelManager().getModel(mrLoc);
+
+                    //bk.getModelRegistry().putObject(mrLoc , mod);
 
                 }
+                //bk.getModelLoader().setupModelRegistry();
 
             //----------------------------------------------------------------------
 

@@ -98,7 +98,7 @@
             //----------------------------------------------------------------------
 
                 Generation.CompressedSingle();
-                Generation.CompressedRelated();
+                //Generation.CompressedRelated();
 
             //----------------------------------------------------------------------
                 IForgeRegistry<Item> registry = event.getRegistry();
@@ -415,10 +415,10 @@
                 //------------------------------------------------------------------
 
                     //Registration.itemReg.register( block.getAsItem() );
-                    Registration.blockReg.register( block );
+                    //Registration.blockReg.register( block );
 
-                    //ForgeRegistries.ITEMS.register( block.getAsItem() );
-                    //ForgeRegistries.BLOCKS.register( block );
+                    ForgeRegistries.ITEMS.register( block.getAsItem() );
+                    ForgeRegistries.BLOCKS.register( block );
 
             //----------------------------------------------------------------------
                 } }
