@@ -4,6 +4,7 @@
 
 //==================================================================================
 
+    import net.minecraft.block.Block;
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.renderer.BlockModelShapes;
     import net.minecraft.client.renderer.block.model.ModelManager;
@@ -26,7 +27,7 @@
 
         //==========================================================================
 
-            public <T extends Blocks.Stem> void registerBlockRenderer(T block ) {
+            public <T extends Block> void registerBlockRenderer(T block ) {
             //----------------------------------------------------------------------
 
             //----------------------------------------------------------------------
@@ -40,7 +41,7 @@
 
         //==========================================================================
 
-            public <T extends Blocks.Stem> void registerBlockRenderer(T block)
+            public <T extends Block> void registerBlockRenderer(T block)
             {//try{
             //----------------------------------------------------------------------
                 String var = "normal";
@@ -56,8 +57,8 @@
 
             //----------------------------------------------------------------------
 
-                Item item = block.getAsItem();
-                ModelLoader.setCustomModelResourceLocation( item , 0 , mrLoc );
+                //Item item = block.getAsItem();
+                //ModelLoader.setCustomModelResourceLocation( item , 0 , mrLoc );
 
                 //Field f = ModelLoader.class.getDeclaredField("modelProvider");
                 //f.setAccessible( true );

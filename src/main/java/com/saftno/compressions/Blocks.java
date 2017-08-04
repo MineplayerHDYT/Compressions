@@ -4,12 +4,15 @@
 
 //==================================================================================
 
+    import com.saftno.compressions.Base.Entries;
+
+//==================================================================================
+
     import mcp.MethodsReturnNonnullByDefault;
     import net.minecraft.block.Block;
     import net.minecraft.block.SoundType;
     import net.minecraft.block.material.Material;
     import net.minecraft.block.state.IBlockState;
-    import net.minecraft.client.Minecraft;
     import net.minecraft.creativetab.CreativeTabs;
     import net.minecraft.entity.Entity;
     import net.minecraft.item.Item;
@@ -29,7 +32,7 @@
     import net.minecraftforge.client.event.ModelRegistryEvent;
     import net.minecraftforge.event.RegistryEvent.Register;
     import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
-    import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+    import net.minecraftforge.fml.common.Mod;
     import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
     import net.minecraftforge.fml.relauncher.Side;
@@ -42,33 +45,105 @@
     import java.util.*;
 
 //==================================================================================
-    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+    @SuppressWarnings( { "WeakerAccess" , "unused" } ) @Mod.EventBusSubscriber
 //==================================================================================
 
     public class Blocks {
 
     //==============================================================================
 
-        public static ArrayList<Stem> blocks;
+
+        public static Entries<Block> blocks;
         public static ArrayList<Compressed> compressions;
+
+        public static Set<String> blockIDs;
 
     //==============================================================================
 
-        public static class Initialization {
+        static /* creates arrays */ {
+        //--------------------------------------------------------------------------
 
-        //==========================================================================
+            compressions = new ArrayList<>();
+            blockIDs     = new HashSet<>();
 
-            static void Pre( FMLPreInitializationEvent event ) {
+        //--------------------------------------------------------------------------
+
+            blocks = new Entries<>( s -> s.getRegistryName().toString() );
+
+        //--------------------------------------------------------------------------
+        }
+
+    //==========================================================================
+        @SubscribeEvent
+    //==========================================================================
+
+        public static void Register( Register<IRecipe> event ) {
+        //--------------------------------------------------------------------------
+
+            Generate();
+
+        //--------------------------------------------------------------------------
+            IForgeRegistry<Block> reg = ForgeRegistries.BLOCKS;
+        //--------------------------------------------------------------------------
+
+            for( Block b : blocks ) if( !reg.containsValue( b ) ) reg.register( b );
+
+        //--------------------------------------------------------------------------
+
+            //Registration.Recipes( event );
+
+        //--------------------------------------------------------------------------
+        }
+
+        public static void Generate() {
+        //--------------------------------------------------------------------------
+
+            String[]        singleIDs = Configurations.getSingleIDs();
+            List<ItemStack> single    = Items.getAll( singleIDs );
+
+        //--------------------------------------------------------------------------
+
+            String[]        relatedIDs     = Configurations.getRelatedIDs();
+            List<ItemStack> relatedItems   = Items.getAll( relatedIDs );
+            List<IRecipe>   relatedRecipes = Recipes.getRelated( relatedItems );
+            List<ItemStack> related        = Items.getAll( relatedRecipes );
+
+        //--------------------------------------------------------------------------
+
+            Entries<ItemStack> entries = new Entries<>( Items::getID );
+
+            for( ItemStack stack : single  ) entries.Add( stack );
+            for( ItemStack stack : related ) entries.Add( stack );
+
+            int L1 = entries.Size();
+            int L2 = Configurations.getDepth();
+
+        //----------------------------------------------------------------------
+            for( int y = 0; y < L1; y++ ) { for( int x = 0; x < L2; x++ ) {
+        //----------------------------------------------------------------------
+
+                Item  item  = entries.Get( y ).getItem();
+                Block block = Block.getBlockFromItem( item );
+
+            //----------------------------------------------------------------------
+                Block AIR = net.minecraft.init.Blocks.AIR;
             //----------------------------------------------------------------------
 
-                blocks       = new ArrayList<>();
-                compressions = new ArrayList<>();
+                Material material;
+
+                if( AIR == block ) material = Material.WOOD;
+                else material = block.getBlockState().getBaseState().getMaterial();
 
             //----------------------------------------------------------------------
-            }
 
-        //==========================================================================
+                Compressed compr = new Compressed(x + 1, material, entries.Get(y));
 
+                blocks.Add( compr );
+                compressions.add( compr );
+
+        //--------------------------------------------------------------------------
+            } }
+        //--------------------------------------------------------------------------
         }
 
     //==============================================================================
@@ -87,7 +162,7 @@
 
                 blockReg = registry;
 
-                for( Stem block : blocks ) registry.register( block );
+                for( Block block : blocks ) registry.register( block );
 
             //----------------------------------------------------------------------
             }
@@ -97,16 +172,15 @@
             public static void Items( Register<Item> event ) {
             //----------------------------------------------------------------------
 
-                Generation.CompressedSingle();
-                //Generation.CompressedRelated();
+                //Generation.CompressedSingle();
 
             //----------------------------------------------------------------------
-                IForgeRegistry<Item> registry = event.getRegistry();
+                //IForgeRegistry<Item> registry = event.getRegistry();
             //----------------------------------------------------------------------
 
-                itemReg = registry;
+                //itemReg = registry;
 
-                for( Stem block : blocks ) registry.register( block.getAsItem() );
+                //for( Stem block : blocks ) registry.register( block.getAsItem() );
 
             //----------------------------------------------------------------------
             }
@@ -115,12 +189,16 @@
 
             public static void Recipes( Register<IRecipe> event ) {
             //----------------------------------------------------------------------
+                //if( Blocks.blocks.isEmpty() ) Blocks.Register( event );
+                //if( Items.items.isEmpty() ) Items.Register( event );
+            //----------------------------------------------------------------------
 
-                Generation.CompressedRelated();
+                //Blocks.Generation.CompressedSingle();
+                //Blocks.Generation.CompressedRelated();
 
                 //for( Stem block: blocks ) Base.proxy.registerBlockRenderer(
                 //        block );
-
+/*
             //----------------------------------------------------------------------
                 IForgeRegistry<IRecipe> registry = event.getRegistry();
             //----------------------------------------------------------------------
@@ -151,7 +229,7 @@
                         .addSmeltingRecipe(
                                 recipe.input ,
                                 recipe.output ,
-                                recipe.experience );
+                                recipe.experience );//*/
 
             //----------------------------------------------------------------------
             }
@@ -161,7 +239,7 @@
             public static void Models( ModelRegistryEvent event ) {
             //----------------------------------------------------------------------
 
-                for( Stem block: blocks ) Base.proxy.registerBlockRenderer( block );
+                for( Block block: blocks ) Base.proxy.registerBlockRenderer( block );
 
             //----------------------------------------------------------------------
             }
@@ -359,17 +437,15 @@
 
                     Compressed block = getCompressed( x + 1 , entries.get( y ) );
 
-                //------------------------------------------------------------------
-
-                    Blocks.blocks.add( block );
-                    Blocks.compressions.add( block );
-
-                //------------------------------------------------------------------
-
-                    ForgeRegistries.BLOCKS.register( block );
+                    //Blocks.Add( block );
+                    //Items.Add( block.item );
 
             //----------------------------------------------------------------------
                 } }
+
+                //Blocks.Register();
+                //Items.Register();
+
             //----------------------------------------------------------------------
             }
 
@@ -396,32 +472,16 @@
             //----------------------------------------------------------------------
 
                     Compressed block = getCompressed( x + 1 , entries.get( y ) );
-                    ResourceLocation loc = block.getRegistryName();
 
-                //------------------------------------------------------------------
-                    if( ForgeRegistries.BLOCKS.containsKey( loc ) ) continue;
-                //------------------------------------------------------------------
-
-                    Blocks.blocks.add( block );
-                    Blocks.compressions.add( block );
-
-                //------------------------------------------------------------------
-
-                    IForgeRegistry<Item> Items = ForgeRegistries.ITEMS;
-                    ResourceLocation Location = block.getAsItem().getRegistryName();
-
-                //------------------------------------------------------------------
-                    if( Items.containsKey( Location ) ) continue;
-                //------------------------------------------------------------------
-
-                    //Registration.itemReg.register( block.getAsItem() );
-                    //Registration.blockReg.register( block );
-
-                    ForgeRegistries.ITEMS.register( block.getAsItem() );
-                    ForgeRegistries.BLOCKS.register( block );
+                    //Blocks.Add( block );
+                    //Items.Add( block.item );
 
             //----------------------------------------------------------------------
                 } }
+
+                //Blocks.Register();
+                //Items.Register();
+
             //----------------------------------------------------------------------
             }
 
@@ -512,6 +572,8 @@
         //==========================================================================
 
         }
+
+    //==============================================================================
 
         public static class Compressed extends Stem {
 

@@ -4,7 +4,6 @@
 
 //==================================================================================
 
-    import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
     import org.apache.commons.io.FileUtils;
     import org.apache.logging.log4j.Level;
     import org.apache.logging.log4j.LogManager;
