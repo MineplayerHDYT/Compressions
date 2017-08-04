@@ -16,14 +16,15 @@
     import net.minecraftforge.client.event.GuiScreenEvent.InitGuiEvent;
     import net.minecraftforge.client.event.ModelBakeEvent;
     import net.minecraftforge.client.event.ModelRegistryEvent;
-    import net.minecraftforge.client.model.ModelLoader;
     import net.minecraftforge.event.RegistryEvent.Register;
     import net.minecraftforge.fml.common.Mod;
     import net.minecraftforge.fml.common.SidedProxy;
-    import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
     import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+    import net.minecraftforge.registries.IForgeRegistryEntry.Impl;
 
     import java.nio.IntBuffer;
+    import java.util.*;
+    import java.util.function.Function;
 
 //==================================================================================
     @Mod.EventBusSubscriber
@@ -61,33 +62,6 @@
         public static String  root = System.getProperty("user.dir");
         public static boolean once = false;
 
-    //==============================================================================
-        @Mod.EventHandler
-    //==============================================================================
-
-        public static void initPre( FMLPreInitializationEvent event ) {
-        //--------------------------------------------------------------------------
-
-        //--------------------------------------------------------------------------
-            Logging.info( name + " is loading" );
-        //--------------------------------------------------------------------------
-
-            Resources.Initialization.Pre( event );
-            Configurations.Initialization.Pre( event );
-
-        //--------------------------------------------------------------------------
-
-            Models.Initialization.Pre( event );
-            Languages.Initialization.Pre( event );
-            Recipes.Initialization.Pre( event );
-
-        //--------------------------------------------------------------------------
-
-            Blocks.Initialization.Pre( event );
-
-        //--------------------------------------------------------------------------
-        }
-
         //==========================================================================
         // Events
         //==========================================================================
@@ -113,7 +87,7 @@
             public static void regBlocks( Register<Block> event ) {
             //----------------------------------------------------------------------
 
-                Blocks.Registration.Blocks( event );
+                //Blocks.Registration.Blocks( event );
 
             //----------------------------------------------------------------------
             }
@@ -125,7 +99,7 @@
             public static void regItems( Register<Item> event ) {
             //----------------------------------------------------------------------
 
-                Blocks.Registration.Items( event );
+                //Blocks.Registration.Items( event );
 
             //----------------------------------------------------------------------
             }
@@ -137,9 +111,11 @@
             public static void regRecipes( Register<IRecipe> event ) {
             //----------------------------------------------------------------------
 
+
                 forgeEndScreen = Textures.GrabScreen();
                 Blocks.Registration.Recipes( event );
                 forgeEndScreen = null;
+
 
             //----------------------------------------------------------------------
 
@@ -179,33 +155,19 @@
             //----------------------------------------------------------------------
 
                 Languages.Generation.LANG();
-
-                //----------------------------------------------------------------------
-                Resources.Generation.Flush();
-                //----------------------------------------------------------------------
-
-                Recipes.Generation.JSON();
+                //Recipes.Generation.JSON();
                 Models.Generation.Blockstates();
-                Models.Generation.Models();
                 Textures.Generation.Blocks();
 
-                //----------------------------------------------------------------------
-                Resources.Generation.Flush();
-                //----------------------------------------------------------------------
+                for( Item item : Items.items ) {
 
-
-
-                for( Blocks.Stem block : Blocks.blocks ) {
-
-                    ResourceLocation rLoc = block.getRegistryName();
+                    ResourceLocation rLoc = item.getRegistryName();
                     ModelResourceLocation mrLoc = new ModelResourceLocation(rLoc,
                             "inventory");
                     ModelResourceLocation mrLoc2 = new ModelResourceLocation(rLoc,
                             "gui");
 
                     //----------------------------------------------------------------------
-
-                    Item item = block.getAsItem();
 
                     ItemStack stack = new ItemStack( item , 1 , 0 );
                     IBakedModel model = Minecraft.getMinecraft().getRenderItem()
@@ -240,6 +202,97 @@
                 once = true; Logging.info( name + " finished loading" );
             //----------------------------------------------------------------------
             }
+
+
+    //==============================================================================
+
+
+        public static class Entries<T> implements Iterable<T> {
+        //==========================================================================
+        // Setup
+        //==========================================================================
+
+            List<T>     values = new ArrayList<>();
+            Set<String> keys   = new HashSet<>();
+
+        //==========================================================================
+
+            Function<T , String> getID;
+
+        //==========================================================================
+
+            Entries( Function<T , String> getID ) {
+            //----------------------------------------------------------------------
+
+                this.getID = getID;
+
+            //----------------------------------------------------------------------
+            }
+
+
+        //==========================================================================
+        // Usage
+        //==========================================================================
+
+            void Add( T entry ) {
+            //----------------------------------------------------------------------
+                if( keys.contains( this.getID.apply( entry ) ) ) return;
+            //----------------------------------------------------------------------
+
+                keys.add( this.getID.apply( entry ) );
+                values.add( entry );
+
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
+            T Get( Integer i ) {
+            //----------------------------------------------------------------------
+                if( i >= values.size() ) return null;
+            //----------------------------------------------------------------------
+
+                return values.get( i );
+
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
+            Integer Size()    { return values.size();    }
+            Boolean isEmpty() { return values.isEmpty(); }
+
+        //==========================================================================
+        // Iteration
+        //==========================================================================
+
+            public Iterator iterator() { return new Iterator( this ); }
+
+        //==========================================================================
+
+            public class Iterator implements java.util.Iterator<T> {
+            //======================================================================
+
+                public Entries entries = null;
+                public int pos = 0;
+
+            //======================================================================
+
+                public Iterator( Entries entries ) { this.entries = entries; }
+
+                public boolean hasNext() { return pos < entries.values.size(); }
+
+                public T next() { return (T) entries.values.get( pos++ ); }
+
+                public void remove() { throw new UnsupportedOperationException(); }
+
+            //======================================================================
+
+            }
+
+        //==========================================================================
+
+        }
 
     //==============================================================================
 

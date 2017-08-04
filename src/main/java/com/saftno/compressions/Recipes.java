@@ -4,32 +4,276 @@
 
 //==================================================================================
 
+    import com.saftno.compressions.Base.Entries;
+    import com.saftno.compressions.Items.Compressed;
+
+//==================================================================================
+
+    import net.minecraft.block.Block;
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemStack;
     import net.minecraft.item.crafting.*;
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
-    import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+    import net.minecraftforge.event.RegistryEvent;
+    import net.minecraftforge.fml.common.Mod;
+    import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
+    import net.minecraftforge.registries.IForgeRegistry;
 
 //==================================================================================
 
     import java.io.File;
-    import java.lang.reflect.Array;
     import java.nio.file.FileSystem;
     import java.util.*;
 
 //==================================================================================
-    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+    @SuppressWarnings( { "WeakerAccess" , "unused" } ) @Mod.EventBusSubscriber
 //==================================================================================
 
     public class Recipes {
 
     //==============================================================================
+    // Setup
+    //==============================================================================
+
+        public static Entries<IRecipe> recipes;
 
         public static String compressing;
         public static String decompressing;
 
+    //==============================================================================
+
+        static {
+        //--------------------------------------------------------------------------
+
+            recipes = new Base.Entries<>( s -> s.getRegistryName().toString() );
+
+        //--------------------------------------------------------------------------
+            compressing = String.join( "\n" , new String[] {
+        //--------------------------------------------------------------------------
+
+            "{ 'type'   : 'minecraft:crafting_shaped'      " ,
+            ", 'group'  : 'compressing'                    " ,
+            ", 'pattern': [ '###'                          " ,
+            "             , '###'                          " ,
+            "             , '###' ]                        " ,
+            ", 'key'    : { '#'    : { 'item': '[NONCMPR]' " ,
+            "                        , 'data': [VAR] } }   " ,
+            ", 'result' : { 'item' : '[CMPR]'              " ,
+            "             , 'data' : 0                     " ,
+            "             , 'count': 1 } }                 " ,
+
+        //--------------------------------------------------------------------------
+            } ).replace( "'" , "\"" );
+        //--------------------------------------------------------------------------
+
+        //--------------------------------------------------------------------------
+            decompressing = String.join( "\n" , new String[] {
+        //--------------------------------------------------------------------------
+
+            "{ 'type'       : 'minecraft:crafting_shapeless' " ,
+            ", 'group'      : 'decompressing'                " ,
+            ", 'ingredients': [ { 'item': '[CMPR]' } ]       " ,
+            ", 'result'     : { 'item' : '[NONCMPR]'         " ,
+            "	              , 'data' : [VAR]               " ,
+            "	              , 'count': 9 } }               " ,
+
+        //--------------------------------------------------------------------------
+            } ).replace( "'" , "\"" );
+        //--------------------------------------------------------------------------
+        }
+
+    //==============================================================================
+
+        public static class Generation {
+
+        //==========================================================================
+
+            public static List<IRecipe> Compressing() {
+            //----------------------------------------------------------------------
+                List<IRecipe> recipes = new ArrayList<>();
+            //----------------------------------------------------------------------
+
+                Compressed previous = (Compressed) Items.items.values.get( 0 );
+
+            //----------------------------------------------------------------------
+                for( Item entry : Items.items ) {
+            //----------------------------------------------------------------------
+
+                    if( !( entry instanceof Compressed ) ) continue;
+
+                //------------------------------------------------------------------
+
+                    Compressed item = (Compressed) entry;
+
+                    Item stem = item.stem.getItem();
+                    int  var  = item.stem.getMetadata();
+
+                //------------------------------------------------------------------
+                // compressing, decompressing, base extension
+                //------------------------------------------------------------------
+
+                    ItemStack bot = null;
+
+                    if( 1 == item.level ) bot = new ItemStack(   stem   , 9 , var );
+                    if( 1 != item.level ) bot = new ItemStack( previous , 9 ,  0  );
+
+                    ItemStack top = new ItemStack( item , 1 , 0 );
+
+                //------------------------------------------------------------------
+
+                    NonNullList<Ingredient> g1 = NonNullList.create();
+                    NonNullList<Ingredient> g2 = NonNullList.create();
+
+                    bot.setCount( 1 );
+                    for( int i = 0; i < 9; i++ ) g1.add(Ingredient.fromStacks(bot));
+                    bot.setCount( 9 );
+
+                    g2.add( Ingredient.fromStacks( top ) );
+
+                //------------------------------------------------------------------
+
+                    String n1 = "compressing";
+                    String n2 = "decompressing";
+
+                    int w = 3;
+                    int h = 3;
+
+                    ShapelessRecipes recipeCo = new ShapelessRecipes( n1, top, g1 );
+                    ShapelessRecipes recipeDe = new ShapelessRecipes( n2, bot, g2 );
+
+                //------------------------------------------------------------------
+
+                    ResourceLocation loc = item.getRegistryName();
+
+                    recipeCo.setRegistryName( loc.toString() + "_compressing" );
+                    recipeDe.setRegistryName( loc.toString() + "_decompressing" );
+
+                    recipes.add( recipeCo );
+                    recipes.add( recipeDe );
+
+                //------------------------------------------------------------------
+                    previous = item;
+            //----------------------------------------------------------------------
+                } return recipes;
+            //----------------------------------------------------------------------
+            }
+
+            public static List<IRecipe> Crafting() {
+
+                String[]        relatedIDs     = Configurations.getRelatedIDs();
+                List<ItemStack> relatedItems   = Items.getAll( relatedIDs );
+                List<IRecipe>   relatedRecipes = Recipes.getRelated( relatedItems );
+                List<ItemStack> related        = Items.getAll( relatedRecipes );
+
+
+
+
+
+
+
+
+            //----------------------------------------------------------------------
+                Entries<IRecipe> recipes = new Entries<>(s->""+s.getRegistryName());
+            //----------------------------------------------------------------------
+
+                List<ItemStack> stacks = new ArrayList<>();
+
+                for( Item i : Items.items ) stacks.add( new ItemStack( i , 1 , 0 ));
+
+            //----------------------------------------------------------------------
+
+                List<IRecipe> related = getRelated( stacks );
+
+            //----------------------------------------------------------------------
+                for( IRecipe recipe : ForgeRegistries.RECIPES.getValues() ) {
+            //----------------------------------------------------------------------
+                    for( Ingredient input : recipe.getIngredients() ) {
+                //------------------------------------------------------------------
+                        for( ItemStack stack : input.getMatchingStacks() ) {
+                    //--------------------------------------------------------------
+                            for( Item entry : Items.items ) {
+                        //----------------------------------------------------------
+
+                                if( !( entry instanceof Compressed ) ) continue;
+
+                            //------------------------------------------------------
+
+                                Compressed item = (Compressed) entry;
+                                ItemStack  stem = item.stem;
+
+                            //------------------------------------------------------
+
+                                String name1 = Blocks.Stem.getItemFullName( stack );
+                                String name2 = Blocks.Stem.getItemFullName( stem );
+
+                                if( !name1.equals( name2 ) ) continue;
+
+                            //------------------------------------------------------
+
+                                String ID = recipe.getRegistryName().toString();
+
+                                if(  IDs.contains( ID ) ) continue;
+                                if( !IDs.contains( ID ) ) IDs.add( ID );
+
+                            //------------------------------------------------------
+
+                                recipes.add( recipe );
+
+            //----------------------------------------------------------------------
+                } } } }
+            //----------------------------------------------------------------------
+                return recipes;
+            //----------------------------------------------------------------------
+            }
+
+            public static List<IRecipe> Smelting() {
+            //----------------------------------------------------------------------
+                List<IRecipe> recipes = new ArrayList<>();
+            //----------------------------------------------------------------------
+
+            //----------------------------------------------------------------------
+                return recipes;
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
+        }
+
+        public static void Generate() {
+        //--------------------------------------------------------------------------
+
+            for( IRecipe recipe : Generation.Compressing() ) recipes.Add( recipe );
+            for( IRecipe recipe : Generation.Crafting()    ) recipes.Add( recipe );
+            for( IRecipe recipe : Generation.Smelting()    ) recipes.Add( recipe );
+
+        //--------------------------------------------------------------------------
+        }
+
+    //==============================================================================
+        @SubscribeEvent
+    //==============================================================================
+
+        public static void Register( RegistryEvent.Register<IRecipe> event ) {
+        //--------------------------------------------------------------------------
+            if( Items.items.isEmpty() ) Items.Register( event );
+        //--------------------------------------------------------------------------
+
+            Generate();
+
+        //--------------------------------------------------------------------------
+            IForgeRegistry<IRecipe> reg = ForgeRegistries.RECIPES;
+        //--------------------------------------------------------------------------
+
+            for( IRecipe r : recipes ) if( !reg.containsValue(r) ) reg.register(r);
+
+        //--------------------------------------------------------------------------
+        }
+
+    //==============================================================================
+    // Structure
     //==============================================================================
 
         public static List<IRecipe> getRelated( List<ItemStack> items ) {
@@ -71,49 +315,7 @@
         }
 
     //==============================================================================
-
-        public static class Initialization {
-
-        //==========================================================================
-
-            public static void Pre( FMLPreInitializationEvent event ) {
-            //----------------------------------------------------------------------
-
-                compressing = String.join( "\n" , new String[] {
-                //------------------------------------------------------------------
-                    "{ 'type'   : 'minecraft:crafting_shaped'      " ,
-                    ", 'group'  : 'compressing'                    " ,
-                    ", 'pattern': [ '###'                          " ,
-                    "             , '###'                          " ,
-                    "             , '###' ]                        " ,
-                    ", 'key'    : { '#'    : { 'item': '[NONCMPR]' " ,
-                    "                        , 'data': [VAR] } }   " ,
-                    ", 'result' : { 'item' : '[CMPR]'              " ,
-                    "             , 'data' : 0                     " ,
-                    "             , 'count': 1 } }                 " ,
-                //------------------------------------------------------------------
-                } ).replace( "'" , "\"" );
-
-            //----------------------------------------------------------------------
-
-                decompressing = String.join( "\n" , new String[] {
-                //------------------------------------------------------------------
-                    "{ 'type'       : 'minecraft:crafting_shapeless' " ,
-                    ", 'group'      : 'decompressing'                " ,
-                    ", 'ingredients': [ { 'item': '[CMPR]' } ]       " ,
-                    ", 'result'     : { 'item' : '[NONCMPR]'         " ,
-                    "	              , 'data' : [VAR]               " ,
-                    "	              , 'count': 9 } }               " ,
-                //------------------------------------------------------------------
-                } ).replace( "'" , "\"" );
-
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-
-        }
-
+/*
         public static class Generation {
 
         //==========================================================================
@@ -337,11 +539,15 @@
 
             //----------------------------------------------------------------------
 
-                Blocks.Compressed prev = Blocks.compressions.get( 0 );
+                Block prev = Blocks.blocks.values.get( 0 );
 
             //----------------------------------------------------------------------
-                for( Blocks.Compressed blok : Blocks.compressions ) {
+                for( Block block : Blocks.blocks ) {
             //----------------------------------------------------------------------
+                    if( !( block instanceof Blocks.Compressed ) ) continue;
+                //----------------------------------------------------------------------
+
+                    Blocks.Compressed blok = (Blocks.Compressed) block;
 
                     Boolean   start = ( 1 == blok.level );
                     ItemStack stem  = blok.stem;
@@ -413,7 +619,7 @@
 
         //==========================================================================
 
-        }
+        }//*/
 
     //==============================================================================
 

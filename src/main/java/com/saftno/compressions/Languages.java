@@ -33,40 +33,36 @@
 
     //==============================================================================
 
-        public static class Initialization {
+        static /* set file locations */ {
+        //--------------------------------------------------------------------------
+            Minecraft minecraft = Minecraft.getMinecraft();
+        //--------------------------------------------------------------------------
 
-        //==========================================================================
+            LanguageManager manager  = minecraft.getLanguageManager();
+            Language        language = manager.getCurrentLanguage();
+            String          code     = language.getLanguageCode();
 
-            public static void Pre( FMLPreInitializationEvent event ) {
-            //----------------------------------------------------------------------
-                Minecraft minecraft = Minecraft.getMinecraft();
-            //----------------------------------------------------------------------
-                LanguageManager manager  = minecraft.getLanguageManager();
-                Language        language = manager.getCurrentLanguage();
-                String          code     = language.getLanguageCode();
-            //----------------------------------------------------------------------
+        //--------------------------------------------------------------------------
 
-                String front = code.split( "_" )[0];
-                String back  = code.split( "_" )[1];
+            String front = code.split( "_" )[0];
+            String back  = code.split( "_" )[1];
 
-            //----------------------------------------------------------------------
+        //--------------------------------------------------------------------------
 
-                code = front + "_" + back.toLowerCase();
+            code = front + "_" + back.toLowerCase();
 
-                fNew = "/assets/" + Base.modId + "/lang/" + code + ".lang";
+            fNew = "/assets/" + Base.modId + "/lang/" + code + ".lang";
 
-            //----------------------------------------------------------------------
+        //--------------------------------------------------------------------------
 
-                code = front + "_" + back.toUpperCase();
+            code = front + "_" + back.toUpperCase();
 
-                fOld = "/assets/" + Base.modId + "/lang/" + code + ".lang";
+            fOld = "/assets/" + Base.modId + "/lang/" + code + ".lang";
 
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-
+        //--------------------------------------------------------------------------
         }
+
+    //==============================================================================
 
         public static class Generation {
 

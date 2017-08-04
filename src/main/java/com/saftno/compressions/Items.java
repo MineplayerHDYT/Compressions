@@ -4,15 +4,23 @@
 
 //==================================================================================
 
+    import com.saftno.compressions.Base.Entries;
+
+//==================================================================================
+
     import net.minecraft.block.Block;
     import net.minecraft.creativetab.CreativeTabs;
     import net.minecraft.item.Item;
+    import net.minecraft.item.ItemBlock;
     import net.minecraft.item.ItemStack;
     import net.minecraft.item.crafting.IRecipe;
     import net.minecraft.item.crafting.Ingredient;
     import net.minecraft.nbt.NBTTagCompound;
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
+    import net.minecraftforge.event.RegistryEvent.Register;
+    import net.minecraftforge.fml.common.Mod;
+    import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
     import net.minecraftforge.registries.IForgeRegistry;
 
@@ -24,10 +32,57 @@
     import java.util.Set;
 
 //==================================================================================
-    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+    @SuppressWarnings( { "WeakerAccess" , "unused" } ) @Mod.EventBusSubscriber
 //==================================================================================
 
     public class Items {
+
+    //==============================================================================
+    // Setup
+    //==============================================================================
+
+        public static Entries<Item> items;
+
+    //==============================================================================
+
+        static /* creates arrays */ {
+        //--------------------------------------------------------------------------
+
+            items = new Entries<>( s -> s.getRegistryName().toString() );
+
+        //--------------------------------------------------------------------------
+        }
+
+    //==============================================================================
+        @SubscribeEvent
+    //==============================================================================
+
+        public static void Register( Register<IRecipe> event ) {
+        //--------------------------------------------------------------------------
+            if( Blocks.blocks.isEmpty() ) Blocks.Register( event );
+        //--------------------------------------------------------------------------
+
+            Generate();
+
+        //--------------------------------------------------------------------------
+            IForgeRegistry<Item> reg = ForgeRegistries.ITEMS;
+        //--------------------------------------------------------------------------
+
+            for( Item i : items ) if( !reg.containsValue( i ) ) reg.register( i );
+
+        //--------------------------------------------------------------------------
+        }
+
+        public static void Generate() {
+        //--------------------------------------------------------------------------
+
+            for( Block block : Blocks.blocks ) items.Add( new Compressed( block ) );
+
+        //--------------------------------------------------------------------------
+        }
+
+    //==============================================================================
+    // usage
     //==============================================================================
 
         public static String getID( ItemStack item ) {
@@ -187,6 +242,57 @@
             } } return items;
         //--------------------------------------------------------------------------
     }
+
+    //==============================================================================
+
+        public static class Stem extends ItemBlock {
+
+        //==========================================================================
+
+            public Stem( Block block ) {
+            //----------------------------------------------------------------------
+                super( block );
+            //----------------------------------------------------------------------
+
+                this.setUnlocalizedName( block.getUnlocalizedName() );
+                this.setRegistryName( block.getRegistryName() );
+
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
+        }
+
+        public static class Compressed extends Stem {
+
+        //==========================================================================
+
+            ItemStack stem  = null;
+            Integer   level = 0;
+
+        //==========================================================================
+
+            public Compressed( Block block ) {
+            //----------------------------------------------------------------------
+                super( block );
+            //----------------------------------------------------------------------
+
+                if( !( block instanceof Blocks.Compressed ) ) return;
+
+            //----------------------------------------------------------------------
+
+                Blocks.Compressed compressed = (Blocks.Compressed) block;
+
+                this.stem  = compressed.stem;
+                this.level = compressed.level;
+
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
+        }
 
     //==============================================================================
 
