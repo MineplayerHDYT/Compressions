@@ -4,16 +4,19 @@
 
 //==================================================================================
 
+    import net.minecraft.item.Item;
     import net.minecraftforge.common.config.Configuration;
-    import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+    import org.apache.commons.io.IOUtils;
     import org.apache.commons.lang3.StringUtils;
 
 //==================================================================================
 
     import java.io.File;
     import java.io.IOException;
+    import java.io.InputStream;
     import java.nio.file.Files;
     import java.nio.file.Paths;
+    import java.util.*;
 
 //==================================================================================
     @SuppressWarnings( { "WeakerAccess" , "unused" } )
@@ -27,6 +30,10 @@
 
         public static Configuration main;
         public static Configuration burn;
+
+    //==============================================================================
+
+        public static HashMap<String , Integer> burnTime = new HashMap<>();
 
     //==============================================================================
 
@@ -191,15 +198,139 @@
         //--------------------------------------------------------------------------
         }
 
-        static /* Setup burn file */ {
+        static /* Setup burn file */ { try {
         //--------------------------------------------------------------------------
             burn.load();
         //--------------------------------------------------------------------------
 
+            String g = "Burn times";
+            String m = "minecraft:";
+
         //--------------------------------------------------------------------------
-            burn.save();
+            HashMap<Item , Integer> defTimes = new LinkedHashMap<>();
         //--------------------------------------------------------------------------
-        }
+
+            defTimes.put( Item.getByNameOrId( m + "lava_bucket" ) , 20000 );
+            defTimes.put( Item.getByNameOrId( m + "coal_block" )  , 16000 );
+            defTimes.put( Item.getByNameOrId( m + "blaze_rod" )   , 2400  );
+            defTimes.put( Item.getByNameOrId( m + "coal" )        , 1600 );
+
+            defTimes.put( Item.getByNameOrId( m + "boat" )          , 400 );
+            defTimes.put( Item.getByNameOrId( m + "spruce_boat" )   , 400 );
+            defTimes.put( Item.getByNameOrId( m + "birch_boat" )    , 400 );
+            defTimes.put( Item.getByNameOrId( m + "jungle_boat" )   , 400 );
+            defTimes.put( Item.getByNameOrId( m + "acacia_boat" )   , 400 );
+            defTimes.put( Item.getByNameOrId( m + "dark_oak_boat" ) , 400 );
+
+            defTimes.put( Item.getByNameOrId( m + "log" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "log2" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "planks" ) , 300 );
+
+            defTimes.put( Item.getByNameOrId( m + "wooden_pressure_plate" ) , 300 );
+
+            defTimes.put( Item.getByNameOrId( m + "fence" )          , 300 );
+            defTimes.put( Item.getByNameOrId( m + "spruce_fence" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "birch_fence" )    , 300 );
+            defTimes.put( Item.getByNameOrId( m + "jungle_fence" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "acacia_fence" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "dark_oak_fence" ) , 300 );
+
+            defTimes.put( Item.getByNameOrId( m + "fence_gate" )          , 300 );
+            defTimes.put( Item.getByNameOrId( m + "spruce_fence_gate" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "birch_fence_gate" )    , 300 );
+            defTimes.put( Item.getByNameOrId( m + "jungle_fence_gate" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "acacia_fence_gate" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "dark_oak_fence_gate" ) , 300 );
+
+            defTimes.put( Item.getByNameOrId( m + "oak_stairs" )      , 300 );
+            defTimes.put( Item.getByNameOrId( m + "spruce_stairs" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "birch_stairs" )    , 300 );
+            defTimes.put( Item.getByNameOrId( m + "jungle_stairs" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "acacia_stairs" )   , 300 );
+            defTimes.put( Item.getByNameOrId( m + "dark_oak_stairs" ) , 300 );
+
+            defTimes.put( Item.getByNameOrId( m + "trapdoor" )             , 300 );
+            defTimes.put( Item.getByNameOrId( m + "crafting_table" )       , 300 );
+            defTimes.put( Item.getByNameOrId( m + "bookshelf" )            , 300 );
+            defTimes.put( Item.getByNameOrId( m + "trapped_chest" )        , 300 );
+            defTimes.put( Item.getByNameOrId( m + "daylight_detector" )    , 300 );
+            defTimes.put( Item.getByNameOrId( m + "jukebox" )              , 300 );
+            defTimes.put( Item.getByNameOrId( m + "noteblock" )            , 300 );
+            defTimes.put( Item.getByNameOrId( m + "brown_mushroom_block" ) , 300 );
+            defTimes.put( Item.getByNameOrId( m + "red_mushroom_block" )   , 300 );
+
+            defTimes.put( Item.getByNameOrId( m + "banner" ) , 300 );
+
+            defTimes.put( Item.getByNameOrId( m + "bow" )         , 300 );
+            defTimes.put( Item.getByNameOrId( m + "fishing_rod" ) , 300 );
+            defTimes.put( Item.getByNameOrId( m + "ladder" )      , 300 );
+
+            defTimes.put( Item.getByNameOrId( m + "wooden_pickaxe" ) , 200 );
+            defTimes.put( Item.getByNameOrId( m + "wooden_hoe" )     , 200 );
+            defTimes.put( Item.getByNameOrId( m + "wooden_shovel" )  , 200 );
+            defTimes.put( Item.getByNameOrId( m + "wooden_axe" )     , 200 );
+            defTimes.put( Item.getByNameOrId( m + "wooden_sword" )   , 200 );
+
+            defTimes.put( Item.getByNameOrId( m + "sign" ) , 200 );
+
+            defTimes.put( Item.getByNameOrId( m + "wooden_door" )   , 200 );
+            defTimes.put( Item.getByNameOrId( m + "spruce_door" )   , 200 );
+            defTimes.put( Item.getByNameOrId( m + "birch_door" )    , 200 );
+            defTimes.put( Item.getByNameOrId( m + "jungle_door" )   , 200 );
+            defTimes.put( Item.getByNameOrId( m + "acacia_door" )   , 200 );
+            defTimes.put( Item.getByNameOrId( m + "dark_oak_door" ) , 200 );
+
+            defTimes.put( Item.getByNameOrId( m + "wooden_slab" )        , 150 );
+
+            defTimes.put( Item.getByNameOrId( m + "sapling" )       , 100 );
+            defTimes.put( Item.getByNameOrId( m + "bowl" )          , 100 );
+            defTimes.put( Item.getByNameOrId( m + "stick" )         , 100 );
+            defTimes.put( Item.getByNameOrId( m + "wooden_button" ) , 100 );
+            defTimes.put( Item.getByNameOrId( m + "wool" )          , 100 );
+
+            defTimes.put( Item.getByNameOrId( m + "carpet" ) , 67 );
+
+        //--------------------------------------------------------------------------
+
+            InputStream input = Files.newInputStream(burn.getConfigFile().toPath());
+
+            String[] content = IOUtils.toString( input , "utf-8" ).split("\n");
+
+            input.close();
+
+        //--------------------------------------------------------------------------
+
+            HashMap<String , Integer> times = new LinkedHashMap<>();
+
+            List<String> entries = new ArrayList<>( Arrays.asList( content ) );
+            entries.removeIf( s -> !s.contains( "=" ) );
+
+        //--------------------------------------------------------------------------
+            for( String line : entries ) {
+        //--------------------------------------------------------------------------
+
+                String  id   = line.split( "\"" )[1];
+                Integer time = Integer.parseInt( line.split( "=" )[1] );
+
+                times.put( id , time );
+
+        //--------------------------------------------------------------------------
+            } for( Item item : defTimes.keySet() ) {
+        //--------------------------------------------------------------------------
+
+                String  id   = item.getRegistryName().toString();
+                Integer def  = defTimes.get( item );
+
+            //----------------------------------------------------------------------
+                burn.getInt( id , g , def , 0 , 0 , "" );
+            //----------------------------------------------------------------------
+
+                burnTime.put( id , times.get( id ) );
+
+        //--------------------------------------------------------------------------
+            } burn.save();
+        //--------------------------------------------------------------------------
+        } catch( IOException ex ) { ex.printStackTrace(); } }
 
     //==============================================================================
     // Usage

@@ -9,16 +9,21 @@
 //==================================================================================
 
     import net.minecraft.block.Block;
+    import net.minecraft.block.material.Material;
     import net.minecraft.creativetab.CreativeTabs;
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemBlock;
     import net.minecraft.item.ItemStack;
+    import net.minecraft.item.crafting.FurnaceRecipes;
     import net.minecraft.item.crafting.IRecipe;
     import net.minecraft.item.crafting.Ingredient;
     import net.minecraft.nbt.NBTTagCompound;
+    import net.minecraft.tileentity.TileEntityFurnace;
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
+    import net.minecraftforge.event.ForgeEventFactory;
     import net.minecraftforge.event.RegistryEvent.Register;
+    import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
     import net.minecraftforge.fml.common.Mod;
     import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -75,9 +80,66 @@
 
         public static void Generate() {
         //--------------------------------------------------------------------------
+            if( Blocks.blocks.isEmpty() ) return;
+        //--------------------------------------------------------------------------
 
             for( Block block : Blocks.blocks ) items.Add( new Compressed( block ) );
 
+        //--------------------------------------------------------------------------
+
+            Compressed bucket1 = null;
+            Compressed bucket2 = null;
+            Compressed bucket3 = null;
+
+        //--------------------------------------------------------------------------
+            for( Item entry : items ) {
+        //--------------------------------------------------------------------------
+
+                if( !( entry instanceof Compressed ) ) continue;
+
+            //----------------------------------------------------------------------
+
+                Compressed item = (Compressed) entry;
+                Item       stem = item.stem.getItem();
+
+            //----------------------------------------------------------------------
+                if( stem.getRegistryName().getResourcePath().equals( "bucket" ) ) {
+            //----------------------------------------------------------------------
+
+                    if( 1 == item.level ) bucket1 = item;
+                    if( 2 == item.level ) bucket1 = item;
+                    if( 3 == item.level ) bucket1 = item;
+
+            //----------------------------------------------------------------------
+                }
+        //--------------------------------------------------------------------------
+            } for( Item entry : items ) {
+        //--------------------------------------------------------------------------
+
+                if( !( entry instanceof Compressed ) ) continue;
+
+            //----------------------------------------------------------------------
+
+                Compressed item = (Compressed) entry;
+                Item       stem = item.stem.getItem();
+
+            //----------------------------------------------------------------------
+                if( stem.getRegistryName().getResourcePath().contains( "bucket" ) ){
+            //----------------------------------------------------------------------
+
+                    if( 1 == item.level && item != bucket1 )
+                        item.setContainerItem( bucket1 );
+
+                    if( 2 == item.level && item != bucket2 )
+                        item.setContainerItem( bucket2 );
+
+                    if( 3 == item.level && item != bucket3 )
+                        item.setContainerItem( bucket3 );
+
+            //----------------------------------------------------------------------
+                }
+        //--------------------------------------------------------------------------
+            }
         //--------------------------------------------------------------------------
         }
 
@@ -286,6 +348,42 @@
 
                 this.stem  = compressed.stem;
                 this.level = compressed.level;
+
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
+            @Override public int getItemBurnTime( ItemStack item ) {
+            //----------------------------------------------------------------------
+                Block AIR = net.minecraft.init.Blocks.AIR;
+            //----------------------------------------------------------------------
+
+                Block    block    = Block.getBlockFromItem( this.stem.getItem() );
+                Material material = block.getDefaultState().getMaterial();
+
+                if( AIR != block && !material.getCanBurn() ) return 0;
+
+                if( AIR == block && !TileEntityFurnace.isItemFuel(this.stem) )
+                    return 0;
+
+            //----------------------------------------------------------------------
+                String ID = this.stem.getItem().getRegistryName().toString();
+            //----------------------------------------------------------------------
+
+                Integer count = item.getCount();
+                Integer exp   = (int) Math.pow( 9 , level );
+
+                Integer defBurnTime = Configurations.burnTime.getOrDefault( ID , 0);
+                Integer stmBurnTime =this.stem.getItem().getItemBurnTime(this.stem);
+
+            //----------------------------------------------------------------------
+
+                     if( stmBurnTime >  0 ) return count * exp * stmBurnTime;
+                else if( stmBurnTime == 0 ) return 0;
+                else if( 0 != defBurnTime ) return count * exp * defBurnTime;
+
+                return  count * exp * 300;
 
             //----------------------------------------------------------------------
             }

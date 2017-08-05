@@ -23,7 +23,6 @@
 
 //==================================================================================
 
-    import java.io.File;
     import java.nio.file.FileSystem;
     import java.util.*;
 
@@ -116,8 +115,8 @@
 
                     ItemStack bot = null;
 
-                    if( 1 == item.level ) bot = new ItemStack(   stem   , 9 , var );
-                    if( 1 != item.level ) bot = new ItemStack( previous , 9 ,  0  );
+                    if( 1 == item.level ) bot = new ItemStack(   stem   , 1 , var );
+                    if( 1 != item.level ) bot = new ItemStack( previous , 1 ,  0  );
 
                     ItemStack top = new ItemStack( item , 1 , 0 );
 
@@ -126,10 +125,7 @@
                     NonNullList<Ingredient> g1 = NonNullList.create();
                     NonNullList<Ingredient> g2 = NonNullList.create();
 
-                    bot.setCount( 1 );
                     for( int i = 0; i < 9; i++ ) g1.add(Ingredient.fromStacks(bot));
-                    bot.setCount( 9 );
-
                     g2.add( Ingredient.fromStacks( top ) );
 
                 //------------------------------------------------------------------
@@ -137,11 +133,11 @@
                     String n1 = "compressing";
                     String n2 = "decompressing";
 
-                    int w = 3;
-                    int h = 3;
-
                     ShapelessRecipes recipeCo = new ShapelessRecipes( n1, top, g1 );
-                    ShapelessRecipes recipeDe = new ShapelessRecipes( n2, bot, g2 );
+
+                    ItemStack single = new ItemStack( bot.getItem() , 9 , bot
+                            .getMetadata() );
+                    ShapelessRecipes recipeDe = new ShapelessRecipes(n2,single,g2);
 
                 //------------------------------------------------------------------
 
@@ -290,7 +286,10 @@
                                     String name1 = Base.UID( result );
                                     String name2 = Base.UID( stem );
 
-                                    if( name1.equals( name2 ) ) result = itSt;
+                                    if( name1.equals( name2 ) )
+                                        result = new ItemStack( item ,
+                                                                result.getCount(),
+                                                                0 );
 
                                 //--------------------------------------------------
 
@@ -539,6 +538,8 @@
         }
 
         public static void Generate() {
+        //--------------------------------------------------------------------------
+            if( Items.items.values.isEmpty() ) return;
         //--------------------------------------------------------------------------
 
             for( IRecipe recipe : Generation.Compressing() ) recipes.Add( recipe );

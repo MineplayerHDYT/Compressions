@@ -30,6 +30,7 @@
     import net.minecraft.world.IBlockAccess;
     import net.minecraft.world.World;
     import net.minecraftforge.client.event.ModelRegistryEvent;
+    import net.minecraftforge.common.MinecraftForge;
     import net.minecraftforge.event.RegistryEvent.Register;
     import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
     import net.minecraftforge.fml.common.Mod;
@@ -131,7 +132,7 @@
 
                 Material material;
 
-                if( AIR == block ) material = Material.WOOD;
+                if( AIR == block ) material = Material.GROUND;
                 else material = block.getBlockState().getBaseState().getMaterial();
 
             //----------------------------------------------------------------------
@@ -642,15 +643,20 @@
 
             public void getBurnTime( FurnaceFuelBurnTimeEvent event ) {
             //----------------------------------------------------------------------
+                Item stem = this.stem.getItem();
+            //----------------------------------------------------------------------
 
-                Integer count      = event.getItemStack().getCount();
-                Integer burnTime   = stem.getItem().getItemBurnTime( stem );
-                Integer multiplier = (int) Math.pow( 9 , level );
+                Integer count = event.getItemStack().getCount();
+                Integer exp   = (int) Math.pow( 9 , level );
+                
+                Integer defBurnTime = Configurations.burnTime.getOrDefault(stem, 0);
+                Integer orgBurnTime = event.getBurnTime();
 
             //----------------------------------------------------------------------
 
-                if( burnTime < 0 ) event.setBurnTime( -1 );
-                if( burnTime > 0 ) event.setBurnTime( count*multiplier*burnTime );
+                if( orgBurnTime >  0 ) event.setBurnTime(count * exp * orgBurnTime);
+                if( orgBurnTime <  0 ) event.setBurnTime(count * exp * defBurnTime);
+                if( orgBurnTime == 0 ) event.setBurnTime( 0 );
 
             //----------------------------------------------------------------------
             }
