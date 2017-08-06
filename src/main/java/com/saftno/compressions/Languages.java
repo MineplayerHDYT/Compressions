@@ -19,6 +19,7 @@
     import java.io.InputStream;
     import java.nio.file.FileSystem;
     import java.nio.file.Files;
+    import java.util.*;
 
 //==================================================================================
     @SuppressWarnings( { "WeakerAccess" , "unused" } )
@@ -78,7 +79,7 @@
 
             //----------------------------------------------------------------------
 
-                String previous = "";
+                String[] content = new String[0];
 
             //----------------------------------------------------------------------
                 if( null != mod ) { if( Files.exists( mod.getPath( fNew ) ) ) {
@@ -86,12 +87,29 @@
 
                     InputStream input = Files.newInputStream( mod.getPath( fNew ) );
 
-                    previous = IOUtils.toString( input , "utf-8" );
+                    content = IOUtils.toString( input , "utf-8" ).split("\n");
 
                     input.close();
 
             //----------------------------------------------------------------------
                 } }
+            //----------------------------------------------------------------------
+
+                List<String> previous = new ArrayList<>( Arrays.asList( content ) );
+                previous.removeIf( s -> !s.contains( "tile." ) );
+
+                Set<String> existing = new HashSet<>();
+
+            //----------------------------------------------------------------------
+                for( String line : previous ) {
+            //----------------------------------------------------------------------
+
+                    String name = line.split( "tile." )[1].split( ".name" )[0];
+
+                    existing.add( name );
+
+            //----------------------------------------------------------------------
+                }
             //----------------------------------------------------------------------
 
                 String entries = "";
@@ -113,7 +131,7 @@
 
                 //------------------------------------------------------------------
 
-                    if( previous.contains( "tile." + name + ".name=" ) ) continue;
+                    if( existing.contains( name ) ) continue;
 
                 //------------------------------------------------------------------
 

@@ -107,7 +107,8 @@
             String[]        relatedIDs     = Configurations.getRelatedIDs();
             List<ItemStack> relatedItems   = Items.getAll( relatedIDs );
             List<IRecipe>   relatedRecipes = Recipes.getRelated( relatedItems );
-            List<ItemStack> related        = Items.getAll( relatedRecipes );
+            List<ItemStack> related1       = Items.getAll( relatedRecipes );
+            List<ItemStack> related        = Recipes.getSmeltingRelated( related1 );
 
         //--------------------------------------------------------------------------
 
@@ -611,10 +612,6 @@
                 this.Setup( name + '_' + this.level + 'x' , this );
 
             //----------------------------------------------------------------------
-
-                //MinecraftForge.EVENT_BUS.register( this );
-
-            //----------------------------------------------------------------------
             }
 
         //==========================================================================
@@ -634,30 +631,6 @@
 
             //----------------------------------------------------------------------
                 return BlockRenderLayer.SOLID;
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-            @SubscribeEvent
-        //==========================================================================
-
-            public void getBurnTime( FurnaceFuelBurnTimeEvent event ) {
-            //----------------------------------------------------------------------
-                Item stem = this.stem.getItem();
-            //----------------------------------------------------------------------
-
-                Integer count = event.getItemStack().getCount();
-                Integer exp   = (int) Math.pow( 9 , level );
-                
-                Integer defBurnTime = Configurations.burnTime.getOrDefault(stem, 0);
-                Integer orgBurnTime = event.getBurnTime();
-
-            //----------------------------------------------------------------------
-
-                if( orgBurnTime >  0 ) event.setBurnTime(count * exp * orgBurnTime);
-                if( orgBurnTime <  0 ) event.setBurnTime(count * exp * defBurnTime);
-                if( orgBurnTime == 0 ) event.setBurnTime( 0 );
-
             //----------------------------------------------------------------------
             }
 

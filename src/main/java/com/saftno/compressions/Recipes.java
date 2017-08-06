@@ -590,8 +590,8 @@
                         for( ItemStack item : items ) {
                     //--------------------------------------------------------------
 
-                            String name1 = Blocks.Stem.getItemFullName( stack );
-                            String name2 = Blocks.Stem.getItemFullName( item );
+                            String name1 = Base.UID( stack );
+                            String name2 = Base.UID( item );
 
                             if( !name1.equals( name2 ) ) continue;
 
@@ -608,6 +608,60 @@
 
         //--------------------------------------------------------------------------
             } } } } return recipes;
+        //--------------------------------------------------------------------------
+        }
+
+        public static List<ItemStack> getSmeltingRelated(List<ItemStack> items){
+        //--------------------------------------------------------------------------
+            List<ItemStack> related = new ArrayList<>( items );
+        //--------------------------------------------------------------------------
+
+            Set<String> IDs = new HashSet<>();
+
+            for( ItemStack stack : items ) IDs.add( Base.UID( stack ) );
+
+        //--------------------------------------------------------------------------
+            for( ItemStack item : items ) {
+        //--------------------------------------------------------------------------
+
+                FurnaceRecipes furnace = FurnaceRecipes.instance();
+
+            //----------------------------------------------------------------------
+
+                ItemStack      key  = null;
+                Set<ItemStack> keys = furnace.getSmeltingList().keySet();
+
+            //----------------------------------------------------------------------
+                for( ItemStack stack : keys ) {
+            //----------------------------------------------------------------------
+
+                    String eName = Base.UID( stack );
+                    String sName = Base.UID( item );
+
+                //------------------------------------------------------------------
+
+                    if( eName.equals( sName ) ) key = stack;
+                    if( eName.equals( sName ) ) break;
+
+            //----------------------------------------------------------------------
+                } if( null == key ) continue;
+            //----------------------------------------------------------------------
+
+                ItemStack result = furnace.getSmeltingResult( key );
+
+            //----------------------------------------------------------------------
+
+                String ID = Base.UID( result );
+
+                if(  IDs.contains( ID ) ) continue;
+                if( !IDs.contains( ID ) ) IDs.add( ID );
+
+            //----------------------------------------------------------------------
+
+                related.add( result );
+
+        //--------------------------------------------------------------------------
+            } return related;
         //--------------------------------------------------------------------------
         }
 

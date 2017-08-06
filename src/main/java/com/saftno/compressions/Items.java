@@ -374,7 +374,7 @@
                 Integer count = item.getCount();
                 Integer exp   = (int) Math.pow( 9 , level );
 
-                Integer defBurnTime = Configurations.burnTime.getOrDefault( ID , 0);
+                Integer defBurnTime = TileEntityFurnace.getItemBurnTime( this.stem);
                 Integer stmBurnTime =this.stem.getItem().getItemBurnTime(this.stem);
 
             //----------------------------------------------------------------------
