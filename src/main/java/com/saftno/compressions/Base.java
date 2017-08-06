@@ -124,7 +124,7 @@
 
 
                 forgeEndScreen = Textures.GrabScreen();
-                Blocks.Registration.Recipes( event );
+                //Blocks.Registration.Recipes( event );
                 forgeEndScreen = null;
 
 
@@ -140,7 +140,7 @@
             public static void regModels( ModelRegistryEvent event ) {
             //----------------------------------------------------------------------
 
-                Blocks.Registration.Models( event );
+                //Blocks.Registration.Models( event );
 
             //----------------------------------------------------------------------
             }
@@ -175,8 +175,6 @@
                     ResourceLocation rLoc = item.getRegistryName();
                     ModelResourceLocation mrLoc = new ModelResourceLocation(rLoc,
                             "inventory");
-                    ModelResourceLocation mrLoc2 = new ModelResourceLocation(rLoc,
-                            "gui");
 
                     //----------------------------------------------------------------------
 

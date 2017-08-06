@@ -241,7 +241,8 @@
             public static void Models( ModelRegistryEvent event ) {
             //----------------------------------------------------------------------
 
-                for( Block block: blocks ) Base.proxy.registerBlockRenderer( block );
+                //for( Block block: blocks ) Base.proxy.registerBlockRenderer(
+                 //       block );
 
             //----------------------------------------------------------------------
             }
