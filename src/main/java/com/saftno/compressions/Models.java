@@ -36,7 +36,7 @@
 
     //==============================================================================
 
-    public static Set<String> models = new HashSet<>();
+        public static Set<String> models = new HashSet<>();
 
     //==============================================================================
 
@@ -89,6 +89,10 @@
         public static void Register( DrawScreenEvent event ) {
         //--------------------------------------------------------------------------
             if( !Resources.tmp.isOpen() ) return;
+        //--------------------------------------------------------------------------
+
+            Models.Generation.Blockstates();
+
         //--------------------------------------------------------------------------
 
             ItemModelMesher mesher =  Minecraft.getMinecraft()

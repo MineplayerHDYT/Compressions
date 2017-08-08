@@ -10,7 +10,10 @@
     import net.minecraft.client.resources.LanguageManager;
     import net.minecraft.item.ItemStack;
     import net.minecraft.util.ResourceLocation;
-    import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+    import net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent;
+    import net.minecraftforge.common.MinecraftForge;
+    import net.minecraftforge.fml.common.Mod;
+    import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import org.apache.commons.io.IOUtils;
     import org.apache.commons.lang3.StringUtils;
 
@@ -23,10 +26,13 @@
     import java.util.*;
 
 //==================================================================================
-    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+    @SuppressWarnings( { "WeakerAccess" , "unused" } ) @Mod.EventBusSubscriber
 //==================================================================================
 
     public class Languages {
+    //==============================================================================
+
+        public static Set<String> languages = new HashSet<>();
 
     //==============================================================================
 
@@ -36,6 +42,18 @@
     //==============================================================================
 
         static /* set file locations */ {
+        //--------------------------------------------------------------------------
+        }
+
+    //==============================================================================
+        @SubscribeEvent
+    //==============================================================================
+
+        public static void Register( DrawScreenEvent event ) {
+        //--------------------------------------------------------------------------
+            if( !Resources.tmp.isOpen() ) return;
+        //--------------------------------------------------------------------------
+
         //--------------------------------------------------------------------------
             Minecraft minecraft = Minecraft.getMinecraft();
         //--------------------------------------------------------------------------
@@ -62,139 +80,106 @@
             fOld = "/assets/" + Base.modId + "/lang/" + code + ".lang";
 
         //--------------------------------------------------------------------------
+
+            Generate();
+
+        //--------------------------------------------------------------------------
+            MinecraftForge.EVENT_BUS.unregister( Languages.class );
+        //--------------------------------------------------------------------------
         }
 
-    //==============================================================================
+        public static void Generate() { try {
+        //--------------------------------------------------------------------------
+            if( Blocks.blocks.values.isEmpty() ) return;
+        //--------------------------------------------------------------------------
 
-        public static class Generation {
+            FileSystem mod = Resources.mod;
+            FileSystem tmp = Resources.tmp;
 
-        //==========================================================================
+        //--------------------------------------------------------------------------
 
-            public static void LANG() { try {
+            String[] content = new String[0];
 
-                Logging.file( "Languages - LANG: start" );
+        //--------------------------------------------------------------------------
+            if( null != mod ) { if( Files.exists( mod.getPath( fNew ) ) ) {
+        //--------------------------------------------------------------------------
 
-            //----------------------------------------------------------------------
-                if( Blocks.blocks.values.isEmpty() ) return;
-            //----------------------------------------------------------------------
+                InputStream input = Files.newInputStream( mod.getPath( fNew ) );
 
-                FileSystem mod = Resources.mod;
-                FileSystem tmp = Resources.tmp;
+                content = IOUtils.toString( input , "utf-8" ).split("\n");
 
-            //----------------------------------------------------------------------
+                input.close();
 
-                String[] content = new String[0];
+        //--------------------------------------------------------------------------
+            } }
+        //--------------------------------------------------------------------------
 
-                Logging.file( "Languages - LANG - content: start" );
-            //----------------------------------------------------------------------
-                if( null != mod ) { if( Files.exists( mod.getPath( fNew ) ) ) {
-            //----------------------------------------------------------------------
+            List<String> previous = new ArrayList<>( Arrays.asList( content ) );
+            previous.removeIf( s -> !s.contains( "tile." ) );
 
-                    InputStream input = Files.newInputStream( mod.getPath( fNew ) );
+            Set<String> existing = new HashSet<>();
 
-                    content = IOUtils.toString( input , "utf-8" ).split("\n");
+        //--------------------------------------------------------------------------
+            for( String line : previous ) {
+        //--------------------------------------------------------------------------
 
-                    input.close();
+                String name = line.split( "tile." )[1].split( ".name" )[0];
 
-            //----------------------------------------------------------------------
-                } }
-            //----------------------------------------------------------------------
+                existing.add( name );
 
-                Logging.file( "Languages - LANG - content: end" );
+        //--------------------------------------------------------------------------
+            }
+        //--------------------------------------------------------------------------
 
-                List<String> previous = new ArrayList<>( Arrays.asList( content ) );
-                previous.removeIf( s -> !s.contains( "tile." ) );
+            String entries = "";
 
-                Set<String> existing = new HashSet<>();
+        //--------------------------------------------------------------------------
+            for( Block entry : Blocks.blocks ) {
+        //--------------------------------------------------------------------------
 
-                Logging.file( "Languages - LANG - existing: start" );
-            //----------------------------------------------------------------------
-                for( String line : previous ) {
-            //----------------------------------------------------------------------
+                if( !( entry instanceof Blocks.Compressed) ) continue;
 
-                    String name = line.split( "tile." )[1].split( ".name" )[0];
+                Blocks.Compressed block = (Blocks.Compressed) entry;
 
-                    existing.add( name );
-
-            //----------------------------------------------------------------------
-                }
-            //----------------------------------------------------------------------
-
-                Logging.file( "Languages - LANG - existing: end" );
-
-                String entries = "";
-
-            //----------------------------------------------------------------------
-                for( Block entry : Blocks.blocks ) {
-            //----------------------------------------------------------------------
-
-                    Logging.file( "Languages - LANG - block: " + entry.getUnlocalizedName() );
-
-                    if( !( entry instanceof Blocks.Compressed) ) continue;
-
-                    Blocks.Compressed block = (Blocks.Compressed) entry;
-
-                    ItemStack base = block.stem;
-
-                    Logging.file( "Languages - LANG - block: end" );
-
-                //------------------------------------------------------------------
-
-                    Logging.file( "Languages - LANG - loc: start" );
-
-                    ResourceLocation loc = block.getRegistryName();
-
-                    if( null == loc ) return;
-
-                    Logging.file( "Languages - LANG - loc: end" );
-
-                    String name = loc.getResourcePath();
-                    String desc = block.level + "x " + base.getDisplayName();
-
-                //------------------------------------------------------------------
-
-                    if( existing.contains( name ) ) continue;
-
-                //------------------------------------------------------------------
-
-                    Logging.file( "Languages - LANG - entries: add" );
-
-                    entries = entries.concat( "\ntile." + name + ".name=" + desc );
-
-            //----------------------------------------------------------------------
-                }
-            //----------------------------------------------------------------------
-
-                if( entries.isEmpty() ) return;
-
-                entries = "\n" + entries + "\n\n#" + StringUtils.repeat( "=" , 99 );
-
-                Logging.file( "Languages - LANG - entries: end" );
+                ItemStack base = block.stem;
 
             //----------------------------------------------------------------------
 
-                Logging.file( "Languages - LANG - mod: " + mod );
-                Logging.file( "Languages - LANG - mod: start" );
+                ResourceLocation loc = block.getRegistryName();
 
-                if( null != mod ) Resources.Append( entries , mod.getPath( fNew ) );
-                if( null != mod ) Resources.Append( entries , mod.getPath( fOld ) );
+                if( null == loc ) return;
 
-                Logging.file( "Languages - LANG - mod: end" );
-
-                Logging.file( "Languages - LANG - tmp: " + tmp );
-                Logging.file( "Languages - LANG - tmp: start" );
-
-                if( null != tmp ) Resources.Append( entries , tmp.getPath( fNew ) );
-                if( null != tmp ) Resources.Append( entries , tmp.getPath( fOld ) );
-
-                Logging.file( "Languages - LANG - tmp: end" );
+                String name = loc.getResourcePath();
+                String desc = block.level + "x " + base.getDisplayName();
 
             //----------------------------------------------------------------------
-            } catch ( IOException e ) { e.printStackTrace(); } }
 
-        //==========================================================================
+                if( existing.contains( name ) ) continue;
 
-        }
+            //----------------------------------------------------------------------
+
+                languages.add( name );
+
+                entries = entries.concat( "\ntile." + name + ".name=" + desc );
+
+        //--------------------------------------------------------------------------
+            }
+        //--------------------------------------------------------------------------
+
+            if( entries.isEmpty() ) return;
+
+            entries = "\n" + entries + "\n\n#" + StringUtils.repeat( "=" , 99 );
+
+        //--------------------------------------------------------------------------
+
+            if( null != mod ) Resources.Append( entries , mod.getPath( fNew ) );
+            if( null != mod ) Resources.Append( entries , mod.getPath( fOld ) );
+
+            if( null != tmp ) Resources.Append( entries , tmp.getPath( fNew ) );
+            if( null != tmp ) Resources.Append( entries , tmp.getPath( fOld ) );
+
+        //--------------------------------------------------------------------------
+        } catch ( IOException e ) { e.printStackTrace(); } }
 
     //==============================================================================
 

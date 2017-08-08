@@ -15,6 +15,9 @@
 
 //==================================================================================
 
+    import java.io.UnsupportedEncodingException;
+    import java.net.URLDecoder;
+    import java.nio.file.InvalidPathException;
     import java.nio.file.Path;
     import java.nio.file.Paths;
     import java.util.ArrayList;
@@ -34,45 +37,6 @@
 //==================================================================================
 
     public class Base {
-
-    //==============================================================================
-
-        public static Boolean dev;
-        public static Path    root;
-        public static Path    jar;
-
-    //==============================================================================
-
-        static /* Set base locations */ { init: {
-        //--------------------------------------------------------------------------
-
-            String thisLocation = Base.class.getProtectionDomain()
-                                            .getCodeSource()
-                                            .getLocation()
-                                            .getFile();
-
-            Logging.info( "Base - " + thisLocation );
-
-        //--------------------------------------------------------------------------
-
-            dev = !thisLocation.startsWith( "file:" );
-
-        //--------------------------------------------------------------------------
-
-            if( dev ) root = Paths.get( System.getProperty( "user.dir" ) );
-            if( dev ) break init;
-
-        //--------------------------------------------------------------------------
-            Boolean Windows = System.getProperty( "os.name" ).contains( "indow" );
-        //--------------------------------------------------------------------------
-
-            thisLocation = thisLocation.split( "file:" )[1].split( "!" )[0];
-
-            jar  = Paths.get( Windows ? thisLocation.substring(1) : thisLocation );
-            root = jar.getParent().getParent();
-
-        //--------------------------------------------------------------------------
-        } }
 
     //==============================================================================
         @SidedProxy( serverSide = "com.saftno.compressions.Proxies$Common" ,
@@ -95,19 +59,55 @@
 
     //==============================================================================
 
-        public static boolean once = false;
+        public static Boolean dev;
+        public static Path    root;
+        public static Path    jar;
 
     //==============================================================================
-        @Mod.EventHandler
-    //==============================================================================
 
-        public void preInit(FMLPreInitializationEvent event) {
+        static /* Set base locations */ { init: { try {
         //--------------------------------------------------------------------------
 
-            System.out.println( name + " is loading" );
+            String thisLocation = Base.class.getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .getFile();
 
         //--------------------------------------------------------------------------
-        }
+
+            dev = !thisLocation.startsWith("file:");
+
+        //--------------------------------------------------------------------------
+
+            if (dev) root = Paths.get(System.getProperty("user.dir"));
+            if (dev) break init;
+
+        //--------------------------------------------------------------------------
+
+            thisLocation = thisLocation.split("file:")[1].split("!")[0];
+            thisLocation = URLDecoder.decode(thisLocation, "UTF-8");
+
+        //--------------------------------------------------------------------------
+            try {
+        //--------------------------------------------------------------------------
+
+                jar = Paths.get(thisLocation);
+
+        //--------------------------------------------------------------------------
+            } catch (InvalidPathException ex) {
+        //--------------------------------------------------------------------------
+
+                if (ex.getMessage().contains("Illegal char <:> at index"))
+                    jar = Paths.get(thisLocation.substring(1));
+
+        //--------------------------------------------------------------------------
+            }
+        //--------------------------------------------------------------------------
+
+            root = jar.getParent().getParent();
+
+        //--------------------------------------------------------------------------
+        } catch( UnsupportedEncodingException ex ) { ex.printStackTrace(); } } }
 
     //==============================================================================
 

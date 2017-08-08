@@ -574,12 +574,6 @@
 
             for( IRecipe r : recipes ) if( !reg.containsValue(r) ) reg.register(r);
 
-            Logging.file( "Blocks - Items - Recipes finished" );
-        //--------------------------------------------------------------------------
-
-            Languages.Generation.LANG();
-            Models.Generation.Blockstates();
-
         //--------------------------------------------------------------------------
             MinecraftForge.EVENT_BUS.unregister( Blocks.class );
         //--------------------------------------------------------------------------

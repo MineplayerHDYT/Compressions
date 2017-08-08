@@ -159,8 +159,9 @@
             if( !Resources.tmp.isOpen() ) return;
         //----------------------------------------------------------------------
 
-            if( Textures.textures.isEmpty() ) Textures.Register( event );
-            if( Models.models.isEmpty()     ) Models.Register( event );
+            if( Languages.languages.isEmpty() ) Languages.Register( event );
+            if( Textures.textures.isEmpty()   ) Textures.Register( event );
+            if( Models.models.isEmpty()       ) Models.Register( event );
 
         //----------------------------------------------------------------------
             Boolean empty = !Files.exists( tmp.getPath( "assets" ) );
