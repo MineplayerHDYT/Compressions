@@ -5,28 +5,22 @@
 //==================================================================================
 
     import net.minecraft.block.Block;
-    import net.minecraft.client.Minecraft;
-    import net.minecraft.client.renderer.block.model.IBakedModel;
-    import net.minecraft.client.renderer.block.model.ModelResourceLocation;
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemStack;
-    import net.minecraft.item.crafting.IRecipe;
     import net.minecraft.nbt.NBTTagCompound;
     import net.minecraft.util.ResourceLocation;
-    import net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent;
-    import net.minecraftforge.client.event.GuiScreenEvent.InitGuiEvent;
-    import net.minecraftforge.client.event.ModelBakeEvent;
-    import net.minecraftforge.client.event.ModelRegistryEvent;
-    import net.minecraftforge.event.RegistryEvent.Register;
     import net.minecraftforge.fml.common.Mod;
     import net.minecraftforge.fml.common.SidedProxy;
     import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-    import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 //==================================================================================
 
-    import java.nio.IntBuffer;
-    import java.util.*;
+    import java.nio.file.Path;
+    import java.nio.file.Paths;
+    import java.util.ArrayList;
+    import java.util.HashSet;
+    import java.util.List;
+    import java.util.Set;
     import java.util.function.Function;
 
 //==================================================================================
@@ -40,6 +34,45 @@
 //==================================================================================
 
     public class Base {
+
+    //==============================================================================
+
+        public static Boolean dev;
+        public static Path    root;
+        public static Path    jar;
+
+    //==============================================================================
+
+        static /* Set base locations */ { init: {
+        //--------------------------------------------------------------------------
+
+            String thisLocation = Base.class.getProtectionDomain()
+                                            .getCodeSource()
+                                            .getLocation()
+                                            .getFile();
+
+            Logging.info( "Base - " + thisLocation );
+
+        //--------------------------------------------------------------------------
+
+            dev = !thisLocation.startsWith( "file:" );
+
+        //--------------------------------------------------------------------------
+
+            if( dev ) root = Paths.get( System.getProperty( "user.dir" ) );
+            if( dev ) break init;
+
+        //--------------------------------------------------------------------------
+            Boolean Windows = System.getProperty( "os.name" ).contains( "indow" );
+        //--------------------------------------------------------------------------
+
+            thisLocation = thisLocation.split( "file:" )[1].split( "!" )[0];
+
+            jar  = Paths.get( Windows ? thisLocation.substring(1) : thisLocation );
+            root = jar.getParent().getParent();
+
+        //--------------------------------------------------------------------------
+        } }
 
     //==============================================================================
         @SidedProxy( serverSide = "com.saftno.compressions.Proxies$Common" ,
@@ -62,156 +95,19 @@
 
     //==============================================================================
 
-        public static String  root = System.getProperty("user.dir");
         public static boolean once = false;
 
+    //==============================================================================
         @Mod.EventHandler
+    //==============================================================================
+
         public void preInit(FMLPreInitializationEvent event) {
+        //--------------------------------------------------------------------------
 
-            System.out.println(name + " is loading!");
+            System.out.println( name + " is loading" );
 
+        //--------------------------------------------------------------------------
         }
-
-        //==========================================================================
-        // Events
-        //==========================================================================
-
-            public static IntBuffer forgeEndScreen;
-
-        //==========================================================================
-            @SubscribeEvent
-        //==========================================================================
-
-            public static void forgeEnd( InitGuiEvent event ) {
-            //----------------------------------------------------------------------
-
-                if( null == forgeEndScreen ) forgeEndScreen = Textures.GrabScreen();
-
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-            @SubscribeEvent
-        //==========================================================================
-
-            public static void regBlocks( Register<Block> event ) {
-            //----------------------------------------------------------------------
-
-                int h = 0;
-                //Blocks.Registration.Blocks( event );
-
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-            @SubscribeEvent
-        //==========================================================================
-
-            public static void regItems( Register<Item> event ) {
-            //----------------------------------------------------------------------
-
-                //Blocks.Registration.Items( event );
-
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-            @SubscribeEvent
-        //==========================================================================
-
-            public static void regRecipes( Register<IRecipe> event ) {
-            //----------------------------------------------------------------------
-
-
-                forgeEndScreen = Textures.GrabScreen();
-                //Blocks.Registration.Recipes( event );
-                forgeEndScreen = null;
-
-
-            //----------------------------------------------------------------------
-
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-            @SubscribeEvent
-        //==========================================================================
-
-            public static void regModels( ModelRegistryEvent event ) {
-            //----------------------------------------------------------------------
-
-                //Blocks.Registration.Models( event );
-
-            //----------------------------------------------------------------------
-            }
-
-            public static ModelBakeEvent bk;
-
-            @SubscribeEvent public static void regtest( ModelBakeEvent event ) {
-            //----------------------------------------------------------------------
-
-                bk = event;
-
-
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-            @SubscribeEvent
-        //==========================================================================
-
-            public static void regResourcePacks( DrawScreenEvent event ) {
-            //----------------------------------------------------------------------
-                if( once ) return;
-            //----------------------------------------------------------------------
-
-                Languages.Generation.LANG();
-                //Recipes.Generation.JSON();
-                Models.Generation.Blockstates();
-                Textures.Generation.Blocks();
-
-                for( Item item : Items.items ) {
-
-                    ResourceLocation rLoc = item.getRegistryName();
-                    ModelResourceLocation mrLoc = new ModelResourceLocation(rLoc,
-                            "inventory");
-
-                    //----------------------------------------------------------------------
-
-                    ItemStack stack = new ItemStack( item , 1 , 0 );
-                    IBakedModel model = Minecraft.getMinecraft().getRenderItem()
-                            .getItemModelMesher().getItemModel( stack );
-
-                    String name = model.toString();
-                    if( name.contains( "FancyMissingModel" ) ) continue;
-
-                    Minecraft.getMinecraft().getRenderItem()
-                            .getItemModelMesher().register( item , 0 , mrLoc );
-
-                    //ModelLoader.setCustomModelResourceLocation( item , 0 ,
-                    // mrLoc );
-                    //ModelLoader.setCustomModelResourceLocation( item , 0 ,
-                    //        mrLoc2 );
-                    //IBakedModel mod = bk.getModelManager().getModel(mrLoc);
-
-                    //bk.getModelRegistry().putObject(mrLoc , mod);
-
-                }
-                //bk.getModelLoader().setupModelRegistry();
-
-            //----------------------------------------------------------------------
-
-                Resources.Registration.Packs();
-
-            //----------------------------------------------------------------------
-
-                //Textures.Generation.saveAllToFile();
-
-            //----------------------------------------------------------------------
-                once = true; Logging.info( name + " finished loading" );
-            //----------------------------------------------------------------------
-            }
-
 
     //==============================================================================
 
@@ -255,8 +151,19 @@
         //--------------------------------------------------------------------------
         }
 
-    //==============================================================================
+        public static String UID( Item item ) {
+        //--------------------------------------------------------------------------
+            return item.getRegistryName().toString();
+        //--------------------------------------------------------------------------
+        }
 
+        public static String UID( Block block ) {
+        //--------------------------------------------------------------------------
+            return block.getRegistryName().toString();
+        //--------------------------------------------------------------------------
+        }
+
+    //==============================================================================
 
         public static class Entries<T> implements Iterable<T> {
         //==========================================================================
@@ -279,7 +186,6 @@
 
             //----------------------------------------------------------------------
             }
-
 
         //==========================================================================
         // Usage

@@ -21,6 +21,7 @@
     import net.minecraft.tileentity.TileEntityFurnace;
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
+    import net.minecraftforge.common.MinecraftForge;
     import net.minecraftforge.event.ForgeEventFactory;
     import net.minecraftforge.event.RegistryEvent.Register;
     import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
@@ -46,17 +47,7 @@
     // Setup
     //==============================================================================
 
-        public static Entries<Item> items;
-
-    //==============================================================================
-
-        static /* creates arrays */ {
-        //--------------------------------------------------------------------------
-
-            items = new Entries<>( s -> s.getRegistryName().toString() );
-
-        //--------------------------------------------------------------------------
-        }
+        public static Entries<Item> items = new Entries<>( Base::UID );
 
     //==============================================================================
         @SubscribeEvent
@@ -75,6 +66,8 @@
 
             for( Item i : items ) if( !reg.containsValue( i ) ) reg.register( i );
 
+        //--------------------------------------------------------------------------
+            MinecraftForge.EVENT_BUS.unregister( Blocks.class );
         //--------------------------------------------------------------------------
         }
 

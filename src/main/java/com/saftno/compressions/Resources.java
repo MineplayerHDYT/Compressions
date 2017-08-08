@@ -7,12 +7,14 @@
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.resources.ResourcePackRepository;
     import net.minecraft.client.resources.ResourcePackRepository.Entry;
-    import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+    import net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent;
+    import net.minecraftforge.common.MinecraftForge;
+    import net.minecraftforge.fml.common.Mod;
+    import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import org.apache.commons.io.FileUtils;
 
 //==================================================================================
 
-    import java.io.File;
     import java.io.FileOutputStream;
     import java.io.IOException;
     import java.io.OutputStream;
@@ -22,13 +24,11 @@
     import java.nio.file.Paths;
     import java.nio.file.Files;
     import java.util.ArrayList;
-    import java.util.Arrays;
     import java.util.List;
-    import java.util.function.Function;
     import java.util.stream.Collectors;
 
 //==================================================================================
-    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+    @SuppressWarnings( { "WeakerAccess" , "unused" } ) @Mod.EventBusSubscriber
 //==================================================================================
 
     public class Resources {
@@ -99,23 +99,11 @@
 
         static /* Create mod filesystem */ { init : { try {
         //--------------------------------------------------------------------------
-
-            String[] files = new File( Base.root + "/mods/" ).list();
-
-        //--------------------------------------------------------------------------
-            if( null == files ) break init;
+            if( null == Base.jar ) break init;
         //--------------------------------------------------------------------------
 
-            ArrayList<String> mods = new ArrayList<>( Arrays.asList( files ) );
-
-            mods.removeIf( file -> !file.contains( Base.name ) );
-
-        //--------------------------------------------------------------------------
-            if( mods.isEmpty() ) break init;
-        //--------------------------------------------------------------------------
-
-            modPath = Paths.get( Base.root + "/mods/" + mods.get( 0 ) );
-            mod     = FileSystems.newFileSystem(modPath, null );
+            modPath = Base.jar.toAbsolutePath();
+            mod     = FileSystems.newFileSystem( modPath , null );
 
         //--------------------------------------------------------------------------
         } catch ( IOException e ) { e.printStackTrace(); } } }
@@ -161,6 +149,72 @@
 
         //--------------------------------------------------------------------------
         } catch ( IOException e ) { e.printStackTrace(); }}
+
+    //==============================================================================
+        @SubscribeEvent
+    //==============================================================================
+
+        public static void regResourcePacks( DrawScreenEvent event ) { try {
+        //----------------------------------------------------------------------
+            if( !Resources.tmp.isOpen() ) return;
+        //----------------------------------------------------------------------
+
+            if( Textures.textures.isEmpty() ) Textures.Register( event );
+            if( Models.models.isEmpty()     ) Models.Register( event );
+
+        //----------------------------------------------------------------------
+            Boolean empty = !Files.exists( tmp.getPath( "assets" ) );
+        //----------------------------------------------------------------------
+
+            if( null != mod ) mod.close();
+            if( null != tmp ) tmp.close();
+
+            // Don't put tmp.close() near Minecraft.getMinecraft()
+            // .refreshResources() as it refreshes before the file IO
+            // finishes and you get a broken pack
+
+        //----------------------------------------------------------------------
+
+            ResourcePackRepository repo;
+
+            repo = Minecraft.getMinecraft().getResourcePackRepository();
+            repo.updateRepositoryEntriesAll();
+
+        //----------------------------------------------------------------------
+
+            List<Entry> all = new ArrayList<>( repo.getRepositoryEntriesAll() );
+            List<Entry> on  = new ArrayList<>( repo.getRepositoryEntries()    );
+
+            all.removeIf( s -> !s.getResourcePackName().contains( Base.name ) );
+            on.removeIf( s -> !s.getResourcePackName().contains( Base.name ) );
+
+        //----------------------------------------------------------------------
+
+            Entry   pack   = on.isEmpty() ? all.get( 0 ) : on.get( 0 );
+            Boolean active = on.contains( pack );
+
+            if(  empty &&  active ) on.remove( pack );
+            if( !empty && !active ) on.add( pack );
+
+        //----------------------------------------------------------------------
+            String tmpName = Base.root + "/resourcepacks/" + Base.name + ".zip";
+        //----------------------------------------------------------------------
+
+            if( empty ) FileUtils.deleteQuietly( Paths.get(tmpName).toFile() );
+
+        //----------------------------------------------------------------------
+            if( empty && !active ) return;
+        //----------------------------------------------------------------------
+
+            repo.setRepositories( on );
+            repo.updateRepositoryEntriesAll();
+
+            Minecraft.getMinecraft().refreshResources();
+
+        //----------------------------------------------------------------------
+            MinecraftForge.EVENT_BUS.unregister( Resources.class );
+        //----------------------------------------------------------------------
+        } catch ( IOException e ) { e.printStackTrace(); } }
 
     //==============================================================================
 

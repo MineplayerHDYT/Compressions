@@ -4,6 +4,7 @@
 
 //==================================================================================
 
+    import net.minecraft.block.Block;
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.resources.Language;
     import net.minecraft.client.resources.LanguageManager;
@@ -70,8 +71,11 @@
         //==========================================================================
 
             public static void LANG() { try {
+
+                Logging.file( "Languages - LANG: start" );
+
             //----------------------------------------------------------------------
-                if( Blocks.compressions.isEmpty() ) return;
+                if( Blocks.blocks.values.isEmpty() ) return;
             //----------------------------------------------------------------------
 
                 FileSystem mod = Resources.mod;
@@ -81,6 +85,7 @@
 
                 String[] content = new String[0];
 
+                Logging.file( "Languages - LANG - content: start" );
             //----------------------------------------------------------------------
                 if( null != mod ) { if( Files.exists( mod.getPath( fNew ) ) ) {
             //----------------------------------------------------------------------
@@ -95,11 +100,14 @@
                 } }
             //----------------------------------------------------------------------
 
+                Logging.file( "Languages - LANG - content: end" );
+
                 List<String> previous = new ArrayList<>( Arrays.asList( content ) );
                 previous.removeIf( s -> !s.contains( "tile." ) );
 
                 Set<String> existing = new HashSet<>();
 
+                Logging.file( "Languages - LANG - existing: start" );
             //----------------------------------------------------------------------
                 for( String line : previous ) {
             //----------------------------------------------------------------------
@@ -112,19 +120,33 @@
                 }
             //----------------------------------------------------------------------
 
+                Logging.file( "Languages - LANG - existing: end" );
+
                 String entries = "";
 
             //----------------------------------------------------------------------
-                for( Blocks.Compressed block : Blocks.compressions ) {
+                for( Block entry : Blocks.blocks ) {
             //----------------------------------------------------------------------
+
+                    Logging.file( "Languages - LANG - block: " + entry.getUnlocalizedName() );
+
+                    if( !( entry instanceof Blocks.Compressed) ) continue;
+
+                    Blocks.Compressed block = (Blocks.Compressed) entry;
 
                     ItemStack base = block.stem;
 
+                    Logging.file( "Languages - LANG - block: end" );
+
                 //------------------------------------------------------------------
+
+                    Logging.file( "Languages - LANG - loc: start" );
 
                     ResourceLocation loc = block.getRegistryName();
 
                     if( null == loc ) return;
+
+                    Logging.file( "Languages - LANG - loc: end" );
 
                     String name = loc.getResourcePath();
                     String desc = block.level + "x " + base.getDisplayName();
@@ -134,6 +156,8 @@
                     if( existing.contains( name ) ) continue;
 
                 //------------------------------------------------------------------
+
+                    Logging.file( "Languages - LANG - entries: add" );
 
                     entries = entries.concat( "\ntile." + name + ".name=" + desc );
 
@@ -145,13 +169,25 @@
 
                 entries = "\n" + entries + "\n\n#" + StringUtils.repeat( "=" , 99 );
 
+                Logging.file( "Languages - LANG - entries: end" );
+
             //----------------------------------------------------------------------
+
+                Logging.file( "Languages - LANG - mod: " + mod );
+                Logging.file( "Languages - LANG - mod: start" );
 
                 if( null != mod ) Resources.Append( entries , mod.getPath( fNew ) );
                 if( null != mod ) Resources.Append( entries , mod.getPath( fOld ) );
 
+                Logging.file( "Languages - LANG - mod: end" );
+
+                Logging.file( "Languages - LANG - tmp: " + tmp );
+                Logging.file( "Languages - LANG - tmp: start" );
+
                 if( null != tmp ) Resources.Append( entries , tmp.getPath( fNew ) );
                 if( null != tmp ) Resources.Append( entries , tmp.getPath( fOld ) );
+
+                Logging.file( "Languages - LANG - tmp: end" );
 
             //----------------------------------------------------------------------
             } catch ( IOException e ) { e.printStackTrace(); } }

@@ -6,16 +6,24 @@
 
     import net.minecraft.block.Block;
     import net.minecraft.client.Minecraft;
+    import net.minecraft.client.renderer.ItemModelMesher;
     import net.minecraft.client.renderer.RenderItem;
     import net.minecraft.client.renderer.block.model.IBakedModel;
     import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
+    import net.minecraft.client.renderer.block.model.ModelResourceLocation;
     import net.minecraft.client.renderer.texture.TextureManager;
     import net.minecraft.client.renderer.texture.TextureMap;
     import net.minecraft.client.shader.Framebuffer;
+    import net.minecraft.item.Item;
     import net.minecraft.item.ItemStack;
     import net.minecraft.util.ResourceLocation;
     import net.minecraft.util.math.AxisAlignedBB;
     import net.minecraftforge.client.ForgeHooksClient;
+    import net.minecraftforge.client.event.GuiScreenEvent.InitGuiEvent;
+    import net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent;
+    import net.minecraftforge.common.MinecraftForge;
+    import net.minecraftforge.fml.common.Mod;
+    import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import org.apache.commons.io.FileUtils;
     import org.lwjgl.BufferUtils;
     import org.lwjgl.opengl.Display;
@@ -35,49 +43,67 @@
     import java.nio.file.Files;
     import java.nio.file.Path;
     import java.nio.file.Paths;
+    import java.util.HashSet;
+    import java.util.Set;
 
 //==================================================================================
-    @SuppressWarnings( { "WeakerAccess" , "unused" } )
+    @SuppressWarnings( { "WeakerAccess" , "unused" } ) @Mod.EventBusSubscriber
 //==================================================================================
 
     class Textures {
 
     //==============================================================================
+    // Setup
+    //==============================================================================
 
-        static IntBuffer GrabScreen() {
+        public static Set<String> textures = new HashSet<>();
+
+    //==============================================================================
+
+        public static IntBuffer ForgeEndScreen;
+
+    //==============================================================================
+        @SubscribeEvent
+    //==============================================================================
+
+        public static void forgeEnd( InitGuiEvent event ) {
+        //--------------------------------------------------------------------------
+            if( null != ForgeEndScreen) return;
         //--------------------------------------------------------------------------
 
             int w = Minecraft.getMinecraft().displayWidth;
             int h = Minecraft.getMinecraft().displayHeight;
 
-        //--------------------------------------------------------------------------
-
-            IntBuffer pixels = BufferUtils.createIntBuffer( w * h );
-            GL11.glReadPixels( 0, 0, w, h, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixels );
+            ForgeEndScreen = BufferUtils.createIntBuffer( w * h );
 
         //--------------------------------------------------------------------------
-            return pixels;
+
+            int format = GL11.GL_RGBA;
+            int type   = GL11.GL_UNSIGNED_BYTE;
+
+            GL11.glReadPixels( 0 , 0 , w , h , format , type , ForgeEndScreen );
+
         //--------------------------------------------------------------------------
         }
 
-        static void SetScreen( IntBuffer pixels ) {
-        //--------------------------------------------------------------------------
+    //==========================================================================
+        @SubscribeEvent
+    //==========================================================================
 
-            int w = Minecraft.getMinecraft().displayWidth;
-            int h = Minecraft.getMinecraft().displayHeight;
+        public static void Register( DrawScreenEvent event ) {
+        //----------------------------------------------------------------------
+            if( !Resources.tmp.isOpen() ) return;
+        //----------------------------------------------------------------------
 
-        //--------------------------------------------------------------------------
+            Textures.Generation.Blocks();
 
-            GL11.glDrawPixels( w , h , GL11.GL_RGBA , GL11.GL_UNSIGNED_BYTE , pixels );
-
-        //--------------------------------------------------------------------------
-
-            Minecraft.getMinecraft().updateDisplay();
-
-        //----------------------------------------------------------------------------------
+        //----------------------------------------------------------------------
+            MinecraftForge.EVENT_BUS.unregister( Textures.class );
+        //----------------------------------------------------------------------
         }
-
-    //======================================================================================
+    //==============================================================================
+    // Usage
+    //==============================================================================
 
         static class Generation {
 
@@ -292,7 +318,19 @@
                 frameBuffer.unbindFramebuffer();
                 frameBuffer.deleteFramebuffer();
 
-                Textures.SetScreen( Base.forgeEndScreen );
+            //----------------------------------------------------------------------
+            // Capturing frames in the framebuffer causes black frames to show
+            //----------------------------------------------------------------------
+
+                w = Minecraft.getMinecraft().displayWidth;
+                h = Minecraft.getMinecraft().displayHeight;
+
+                int format = GL11.GL_RGBA;
+                int type   = GL11.GL_UNSIGNED_BYTE;
+
+                GL11.glDrawPixels( w , h , format , type , ForgeEndScreen );
+
+                Minecraft.getMinecraft().updateDisplay();
 
             //------------------------------------------------------------------------------
             // Crude fix for rails
@@ -773,20 +811,24 @@
             } catch ( IOException e ) { e.printStackTrace(); } }
 
             @SuppressWarnings( "unused" ) static void saveAllToFile() { try {
-                //------------------------------------------------------------------------------
+            //------------------------------------------------------------------------------
 
-                int l = Blocks.compressions.size();
+                int l = Blocks.blocks.values.size();
 
                 int w = 128 * (     ( l < 8 ? l     : 8 ) );
                 int h = 128 * ( 1 + ( l > 8 ? l / 8 : 0 ) );
 
                 BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
 
-                //------------------------------------------------------------------------------
-                for( int i = 0; i < Blocks.compressions.size(); i++ ) {
-                    //------------------------------------------------------------------------------
+            //------------------------------------------------------------------------------
+                for( int i = 0; i < Blocks.blocks.values.size(); i++ ) {
+            //------------------------------------------------------------------------------
 
-                    Blocks.Compressed block = Blocks.compressions.get( i );
+                    Block entry = Blocks.blocks.values.get( i );
+
+                    if( !( entry instanceof Blocks.Compressed) ) continue;
+
+                    Blocks.Compressed block = (Blocks.Compressed) entry;
 
                     int[][] data = get3DTexData( new ItemStack( block , 1 , 0 ) );
 
@@ -869,10 +911,10 @@
         //==========================================================================
 
             static void Blocks() {
+
+                Logging.file( "Textures - Blocks: start" );
             //----------------------------------------------------------------------
-                if( null == Resources.tmp ) return;
-            //----------------------------------------------------------------------
-                if( Blocks.compressions.isEmpty() ) return;
+                if( Blocks.blocks.values.isEmpty() ) return;
             //----------------------------------------------------------------------
 
                 FileSystem mod = Resources.mod;
@@ -880,8 +922,13 @@
 
             //----------------------------------------------------------------------
 
+                Logging.file( "Textures - Blocks - frame: start" );
                 int[][] frame = getFileData( mod , "frame" );
+                Logging.file( "Textures - Blocks - frame: end" );
+
+                Logging.file( "Textures - Blocks - side: start" );
                 int[][] side  = getFileData( mod , "side" );
+                Logging.file( "Textures - Blocks - side: end" );
 
             //----------------------------------------------------------------------
 
@@ -897,19 +944,38 @@
                 int[][] joined = null;
 
             //----------------------------------------------------------------------
-                for( Blocks.Compressed block : Blocks.compressions ) {
+                for( Block entry : Blocks.blocks ) {
             //----------------------------------------------------------------------
+
+                    Logging.file( "Textures - Blocks - block: " + entry.getUnlocalizedName() );
+
+                    if( !( entry instanceof Blocks.Compressed ) ) continue;
+
+                    //------------------------------------------------------------------
+
+                    Blocks.Compressed block = (Blocks.Compressed) entry;
 
                     ItemStack stem = block.stem;
 
+                    Logging.file( "Textures - Blocks - get2DTexData: start" );
                     if( 1 == block.level ) pixels   = get2DTexData( stem );
+                    Logging.file( "Textures - Blocks - get2DTexData: end" );
+
+                    Logging.file( "Textures - Blocks - averagePixel: start" );
                     if( 1 == block.level ) avgPixel = averagePixel( pixels );
+                    Logging.file( "Textures - Blocks - averagePixel: end" );
+
+                    Logging.file( "Textures - Blocks - colorPixels: start" );
                     if( 1 == block.level ) back     = colorPixels( avgPixel, side );
+                    Logging.file( "Textures - Blocks - colorPixels: end" );
+
                     if( 1 == block.level ) backed   = frame;
 
                 //------------------------------------------------------------------
 
                     ResourceLocation locBase = stem.getItem().getRegistryName();
+
+                    Logging.file( "Textures - Blocks - transparent: start" );
 
                 //------------------------------------------------------------------
                     if( null != locBase && 1 == block.level ) {
@@ -929,7 +995,11 @@
                     }
                 //------------------------------------------------------------------
 
+                    Logging.file( "Textures - Blocks - transparent: end" );
+
+                    Logging.file( "Textures - Blocks - joinPixels: start" );
                     if( 1 == block.level ) joined = joinPixels( backed , pixels );
+                    Logging.file( "Textures - Blocks - joinPixels: end" );
 
                 //------------------------------------------------------------------
 
@@ -942,12 +1012,25 @@
                     String name = loc.getResourcePath();
                     String file = texLoc + name + ".png";
 
+                    Logging.file( "Textures - Blocks - darkenPixels: start" );
                     int[][] meshed = darkenPixels( block.level , joined );
+                    Logging.file( "Textures - Blocks - darkenPixels: end" );
 
                 //------------------------------------------------------------------
 
+                    Logging.file( "Textures - Blocks - mod: " + mod );
+                    Logging.file( "Textures - Blocks - mod: start" );
                     if( null != mod ) saveToJAR( meshed , mod.getPath( file ) );
+                    Logging.file( "Textures - Blocks - mod: end" );
+
+                    Logging.file( "Textures - Blocks - tmp: " + tmp );
+                    Logging.file( "Textures - Blocks - tmp: start" );
                     if( null != tmp ) saveToJAR( meshed , tmp.getPath( file ) );
+                    Logging.file( "Textures - Blocks - tmp: end" );
+
+                //------------------------------------------------------------------
+
+                    textures.add( name );
 
         //--------------------------------------------------------------------------
             } }
