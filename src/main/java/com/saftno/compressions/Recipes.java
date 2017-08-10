@@ -10,11 +10,6 @@
 //==================================================================================
 
     import net.minecraft.block.Block;
-    import net.minecraft.client.Minecraft;
-    import net.minecraft.client.renderer.ItemModelMesher;
-    import net.minecraft.client.renderer.RenderItem;
-    import net.minecraft.client.renderer.block.model.IBakedModel;
-    import net.minecraft.client.renderer.block.model.ModelResourceLocation;
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemStack;
     import net.minecraft.item.crafting.*;
@@ -52,7 +47,7 @@
         static {
         //--------------------------------------------------------------------------
 
-            recipes = new Base.Entries<>( s -> s.getRegistryName().toString() );
+            recipes = new Base.Entries<>(s -> s.getRegistryName().toString() );
 
         //--------------------------------------------------------------------------
             compressing = String.join( "\n" , new String[] {
@@ -254,7 +249,7 @@
                 List<IRecipe> recipes = new ArrayList<>();
 
             //----------------------------------------------------------------------
-                for( int i = 1; i <= Configurations.getDepth(); i++ ) {
+                for(int i = 1; i <= Configurations.getDepth(); i++ ) {
             //----------------------------------------------------------------------
                     for( IRecipe recipe : base ) {
                 //------------------------------------------------------------------
@@ -458,11 +453,11 @@
 
             public static void JSON() {
             //----------------------------------------------------------------------
-                if( null == Resources.tmp ) return;
+                if( null == Resources.storage) return;
             //----------------------------------------------------------------------
 
-                FileSystem mod = Resources.mod;
-                FileSystem tmp = Resources.tmp;
+                //FileSystem mod = Resources.mod;
+                FileSystem tmp = Resources.storage;
 
             //----------------------------------------------------------------------
 
@@ -535,7 +530,8 @@
 
                         String data = jsons[i];
 
-                        if(null != mod) Resources.Write(data,mod.getPath(files[i]));
+                        //if(null != mod) Resources.Write(data,mod.getPath
+                        //        (files[i]));
                         if(null != tmp) Resources.Write(data,tmp.getPath(files[i]));
 
             //----------------------------------------------------------------------

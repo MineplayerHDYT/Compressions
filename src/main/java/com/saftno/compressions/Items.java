@@ -14,7 +14,6 @@
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemBlock;
     import net.minecraft.item.ItemStack;
-    import net.minecraft.item.crafting.FurnaceRecipes;
     import net.minecraft.item.crafting.IRecipe;
     import net.minecraft.item.crafting.Ingredient;
     import net.minecraft.nbt.NBTTagCompound;
@@ -22,9 +21,7 @@
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.common.MinecraftForge;
-    import net.minecraftforge.event.ForgeEventFactory;
     import net.minecraftforge.event.RegistryEvent.Register;
-    import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
     import net.minecraftforge.fml.common.Mod;
     import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -133,6 +130,23 @@
                 }
         //--------------------------------------------------------------------------
             }
+        //--------------------------------------------------------------------------
+        }
+
+        public static void Generate2() {
+        //--------------------------------------------------------------------------
+
+            String[]        singleIDs = Configurations.getSingleIDs();
+            List<ItemStack> single    = Items.getAll( singleIDs );
+
+        //--------------------------------------------------------------------------
+
+            String[]        relatedIDs     = Configurations.getRelatedIDs();
+            List<ItemStack> relatedItems   = Items.getAll( relatedIDs );
+            List<IRecipe>   relatedRecipes = Recipes.getRelated( relatedItems );
+            List<ItemStack> related1       = Items.getAll( relatedRecipes );
+            List<ItemStack> related        = Recipes.getSmeltingRelated( related1 );
+
         //--------------------------------------------------------------------------
         }
 

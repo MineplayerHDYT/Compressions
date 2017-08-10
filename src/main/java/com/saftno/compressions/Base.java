@@ -10,14 +10,9 @@
     import net.minecraft.nbt.NBTTagCompound;
     import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.fml.common.Mod;
-    import net.minecraftforge.fml.common.SidedProxy;
-    import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
 //==================================================================================
 
-    import java.io.UnsupportedEncodingException;
-    import java.net.URLDecoder;
-    import java.nio.file.InvalidPathException;
     import java.nio.file.Path;
     import java.nio.file.Paths;
     import java.util.ArrayList;
@@ -39,17 +34,12 @@
     public class Base {
 
     //==============================================================================
-        @SidedProxy( serverSide = "com.saftno.compressions.Proxies$Common" ,
-                     clientSide = "com.saftno.compressions.Proxies$Client" )
-    //==============================================================================
-
-        public static Proxies.Common proxy;
-
+    // Entry
     //==============================================================================
 
         public static final String modId   = "compressions";
         public static final String name    = "Compressions";
-        public static final String version = "1.0.0";
+        public static final String version = "1.1.5";
 
     //==============================================================================
         @Mod.Instance( modId )
@@ -58,57 +48,102 @@
         public static Base instance;
 
     //==============================================================================
+    // Structure
+    //==============================================================================
 
-        public static Boolean dev;
-        public static Path    root;
-        public static Path    jar;
+        public static Path root = Paths.get( System.getProperty( "user.dir" ) );
 
     //==============================================================================
 
-        static /* Set base locations */ { init: { try {
-        //--------------------------------------------------------------------------
+        public static class Entries<T> implements Iterable<T> {
 
-            String thisLocation = Base.class.getProtectionDomain()
-                    .getCodeSource()
-                    .getLocation()
-                    .getFile();
+        //==========================================================================
+        // Structure
+        //==========================================================================
 
-        //--------------------------------------------------------------------------
+            List<T>     values = new ArrayList<>();
+            Set<String> keys   = new HashSet<>();
 
-            dev = !thisLocation.startsWith("file:");
+        //==========================================================================
 
-        //--------------------------------------------------------------------------
+            Function<T , String> getID;
 
-            if (dev) root = Paths.get(System.getProperty("user.dir"));
-            if (dev) break init;
+        //==========================================================================
 
-        //--------------------------------------------------------------------------
+            public class Iterator implements java.util.Iterator<T> {
+            //======================================================================
 
-            thisLocation = thisLocation.split("file:")[1].split("!")[0];
-            thisLocation = URLDecoder.decode(thisLocation, "UTF-8");
+                public Entries entries = null;
+                public int pos = 0;
 
-        //--------------------------------------------------------------------------
-            try {
-        //--------------------------------------------------------------------------
+            //======================================================================
 
-                jar = Paths.get(thisLocation);
+                public Iterator( Entries entries ) { this.entries = entries; }
 
-        //--------------------------------------------------------------------------
-            } catch (InvalidPathException ex) {
-        //--------------------------------------------------------------------------
+                public boolean hasNext() { return pos < entries.values.size(); }
 
-                if (ex.getMessage().contains("Illegal char <:> at index"))
-                    jar = Paths.get(thisLocation.substring(1));
+                public T next() { return (T) entries.values.get( pos++ ); }
 
-        //--------------------------------------------------------------------------
+                public void remove() { throw new UnsupportedOperationException(); }
+
+            //======================================================================
+
             }
-        //--------------------------------------------------------------------------
 
-            root = jar.getParent().getParent();
+        //==========================================================================
+        // Setup
+        //==========================================================================
 
-        //--------------------------------------------------------------------------
-        } catch( UnsupportedEncodingException ex ) { ex.printStackTrace(); } } }
+            public Iterator iterator() { return new Iterator( this ); }
 
+        //==========================================================================
+
+            Entries( Function<T , String> getID ) {
+                //----------------------------------------------------------------------
+
+                this.getID = getID;
+
+                //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+        // Usage
+        //==========================================================================
+
+            void Add( T entry ) {
+            //----------------------------------------------------------------------
+                if( keys.contains( this.getID.apply( entry ) ) ) return;
+            //----------------------------------------------------------------------
+
+                keys.add( this.getID.apply( entry ) );
+                values.add( entry );
+
+            //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
+            T Get( Integer i ) {
+                //----------------------------------------------------------------------
+                if( i >= values.size() ) return null;
+                //----------------------------------------------------------------------
+
+                return values.get( i );
+
+                //----------------------------------------------------------------------
+            }
+
+        //==========================================================================
+
+            Integer Size()    { return values.size();    }
+            Boolean isEmpty() { return values.isEmpty(); }
+
+        //==========================================================================
+
+        }
+
+    //==============================================================================
+    // Usage
     //==============================================================================
 
         public static String UID( ItemStack item ) {
@@ -161,94 +196,6 @@
         //--------------------------------------------------------------------------
             return block.getRegistryName().toString();
         //--------------------------------------------------------------------------
-        }
-
-    //==============================================================================
-
-        public static class Entries<T> implements Iterable<T> {
-        //==========================================================================
-        // Setup
-        //==========================================================================
-
-            List<T>     values = new ArrayList<>();
-            Set<String> keys   = new HashSet<>();
-
-        //==========================================================================
-
-            Function<T , String> getID;
-
-        //==========================================================================
-
-            Entries( Function<T , String> getID ) {
-            //----------------------------------------------------------------------
-
-                this.getID = getID;
-
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-        // Usage
-        //==========================================================================
-
-            void Add( T entry ) {
-            //----------------------------------------------------------------------
-                if( keys.contains( this.getID.apply( entry ) ) ) return;
-            //----------------------------------------------------------------------
-
-                keys.add( this.getID.apply( entry ) );
-                values.add( entry );
-
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-
-            T Get( Integer i ) {
-            //----------------------------------------------------------------------
-                if( i >= values.size() ) return null;
-            //----------------------------------------------------------------------
-
-                return values.get( i );
-
-            //----------------------------------------------------------------------
-            }
-
-        //==========================================================================
-
-            Integer Size()    { return values.size();    }
-            Boolean isEmpty() { return values.isEmpty(); }
-
-        //==========================================================================
-        // Iteration
-        //==========================================================================
-
-            public Iterator iterator() { return new Iterator( this ); }
-
-        //==========================================================================
-
-            public class Iterator implements java.util.Iterator<T> {
-            //======================================================================
-
-                public Entries entries = null;
-                public int pos = 0;
-
-            //======================================================================
-
-                public Iterator( Entries entries ) { this.entries = entries; }
-
-                public boolean hasNext() { return pos < entries.values.size(); }
-
-                public T next() { return (T) entries.values.get( pos++ ); }
-
-                public void remove() { throw new UnsupportedOperationException(); }
-
-            //======================================================================
-
-            }
-
-        //==========================================================================
-
         }
 
     //==============================================================================

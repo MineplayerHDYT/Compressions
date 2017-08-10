@@ -34,9 +34,7 @@
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
     import net.minecraftforge.fml.relauncher.Side;
     import net.minecraftforge.fml.relauncher.SideOnly;
-    import net.minecraftforge.oredict.OreDictionary;
     import net.minecraftforge.registries.IForgeRegistry;
-    import org.apache.commons.lang3.StringUtils;
 
 //==================================================================================
 

@@ -4,9 +4,7 @@
 
 //==================================================================================
 
-    import com.saftno.compressions.Base.Entries;
-
-//==================================================================================
+    //==================================================================================
 
     import net.minecraft.block.Block;
     import net.minecraft.client.Minecraft;
@@ -18,8 +16,6 @@
     import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent;
     import net.minecraftforge.common.MinecraftForge;
-    import net.minecraftforge.fml.common.Mod;
-    import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 //==================================================================================
 
@@ -29,10 +25,14 @@
     import java.util.Set;
 
 //==================================================================================
-    @SuppressWarnings( { "WeakerAccess" , "unused" } ) @Mod.EventBusSubscriber
+    @SuppressWarnings( { "WeakerAccess" , "unused" } ) // @Mod.EventBusSubscriber
 //==================================================================================
 
     public class Models {
+
+    //==============================================================================
+
+        public static Boolean over = false;
 
     //==============================================================================
 
@@ -83,12 +83,14 @@
         }
 
     //==========================================================================
-        @SubscribeEvent
+        // @SubscribeEvent
     //==========================================================================
 
         public static void Register( DrawScreenEvent event ) {
         //--------------------------------------------------------------------------
-            if( !Resources.tmp.isOpen() ) return;
+            if( !Resources.storage.isOpen() ) return;
+            //if( null != Resources.mod ) if( !Resources.mod.isOpen()
+            //        ) return;
         //--------------------------------------------------------------------------
 
             Models.Generation.Blockstates();
@@ -125,7 +127,14 @@
                 models.add( ID );
 
         //--------------------------------------------------------------------------
-            } MinecraftForge.EVENT_BUS.unregister( Models.class );
+            }
+        //----------------------------------------------------------------------
+
+            over = true;
+
+        //----------------------------------------------------------------------
+
+            MinecraftForge.EVENT_BUS.unregister( Models.class );
         //--------------------------------------------------------------------------
         }
 
@@ -136,31 +145,22 @@
         //==========================================================================
 
             public static void Blockstates() {
-                Logging.file( "Models - Blockstates: start" );
-
             //----------------------------------------------------------------------
                 if( Blocks.blocks.values.isEmpty() ) return;
             //----------------------------------------------------------------------
 
-                FileSystem mod = Resources.mod;
-                FileSystem tmp = Resources.tmp;
+                //FileSystem mod = Resources.mod;
+                FileSystem tmp = Resources.storage;
 
             //----------------------------------------------------------------------
                 for( Block block: Blocks.blocks ) {
             //----------------------------------------------------------------------
 
-                    Logging.file( "Models - Blockstates - block: " + block.getUnlocalizedName() );
-
-                    Logging.file( "Models - Blockstates - loc: start" );
                     ResourceLocation loc = block.getRegistryName();
 
                     if( null == loc ) return;
 
-                    Logging.file( "Models - Blockstates - loc: end" );
-
                 //------------------------------------------------------------------
-
-                    Logging.file( "Models - Blockstates - json: start" );
 
                     String tex = loc.getResourcePath();
                     String json = column.replace( "[TEX]" , tex );
@@ -172,26 +172,15 @@
                     name = name.replace( "[A]"  , "assets" );
                     name = name.replace( "[BS]" , "blockstates" );
 
-                    Logging.file( "Models - Blockstates - json: end" );
-
                 //------------------------------------------------------------------
 
-                    Logging.file( "Models - Blockstates - mod: " + mod );
-                    Logging.file( "Models - Blockstates - mod: start" );
-                    if( null != mod )
-                        if( !Files.exists( mod.getPath( name ) ) )
-                            Resources.Write( json , mod.getPath( name ) );
-
-                    Logging.file( "Models - Blockstates - mod: end" );
-
-                    Logging.file( "Models - Blockstates - tmp: " + tmp );
-                    Logging.file( "Models - Blockstates - tmp: start" );
+                    //if( null != mod )
+                    //    if( !Files.exists( mod.getPath( name ) ) )
+                    //        Resources.Write( json , mod.getPath( name ) );
 
                     if( null != tmp )
                         if( !Files.exists( tmp.getPath( name ) ) )
                             Resources.Write( json , tmp.getPath( name ) );
-
-                    Logging.file( "Models - Blockstates - tmp: end" );
 
             //----------------------------------------------------------------------
             } }

@@ -4,20 +4,15 @@
 
 //==================================================================================
 
-    import net.minecraft.item.Item;
     import net.minecraftforge.common.config.Configuration;
-    import org.apache.commons.io.IOUtils;
     import org.apache.commons.lang3.StringUtils;
 
 //==================================================================================
 
     import java.io.File;
     import java.io.IOException;
-    import java.io.InputStream;
-    import java.net.URISyntaxException;
     import java.nio.file.Files;
     import java.nio.file.Paths;
-    import java.util.*;
 
 //==================================================================================
     @SuppressWarnings( { "WeakerAccess" , "unused" } )

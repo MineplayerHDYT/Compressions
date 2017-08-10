@@ -41,25 +41,22 @@
 
     //==============================================================================
 
-        public static Path tmpPath;
-        public static Path modPath;
-
-        public static FileSystem tmp;
-        public static FileSystem mod;
+        public static Path storagePath;
+        public static FileSystem storage;
 
     //==============================================================================
 
-        static /* Create tmp filesystem */ { try {
+        static /* Create storage filesystem */ { try {
         //--------------------------------------------------------------------------
             String tmpName = Base.root + "/resourcepacks/" + Base.name + ".zip";
         //--------------------------------------------------------------------------
 
-            tmpPath = Paths.get( tmpName );
+            storagePath = Paths.get( tmpName );
 
         //--------------------------------------------------------------------------
 
-            FileUtils.deleteQuietly( tmpPath.toFile() );
-            FileUtils.touch( tmpPath.toFile() );
+            FileUtils.deleteQuietly( storagePath.toFile() );
+            FileUtils.touch( storagePath.toFile() );
 
         //--------------------------------------------------------------------------
 
@@ -68,7 +65,7 @@
 
         //--------------------------------------------------------------------------
 
-            OutputStream zipStream = new FileOutputStream( tmpPath.toFile() );
+            OutputStream zipStream = new FileOutputStream( storagePath.toFile() );
 
             zipStream.write( empty );
 
@@ -77,7 +74,7 @@
 
         //--------------------------------------------------------------------------
 
-            tmp = FileSystems.newFileSystem( tmpPath , null );
+            storage = FileSystems.newFileSystem(storagePath, null );
 
         //--------------------------------------------------------------------------
             String packData = String.join( "\n" , new String[] {
@@ -92,21 +89,10 @@
             } ).replace( "'" , "\"" );
         //--------------------------------------------------------------------------
 
-            Write( packData , tmp.getPath( "pack.mcmeta" ) );
+            Write( packData , storage.getPath( "pack.mcmeta" ) );
 
         //--------------------------------------------------------------------------
         } catch ( IOException e ) { e.printStackTrace(); } }
-
-        static /* Create mod filesystem */ { init : { try {
-        //--------------------------------------------------------------------------
-            if( null == Base.jar ) break init;
-        //--------------------------------------------------------------------------
-
-            modPath = Base.jar.toAbsolutePath();
-            mod     = FileSystems.newFileSystem( modPath , null );
-
-        //--------------------------------------------------------------------------
-        } catch ( IOException e ) { e.printStackTrace(); } } }
 
     //==============================================================================
     // Usage
@@ -156,21 +142,23 @@
 
         public static void regResourcePacks( DrawScreenEvent event ) { try {
         //----------------------------------------------------------------------
-            if( !Resources.tmp.isOpen() ) return;
+            if( !Resources.storage.isOpen() ) return;
+            //if( null != Resources.mod ) if( !Resources.mod.isOpen()
+            //        ) return;
         //----------------------------------------------------------------------
 
-            if( Languages.languages.isEmpty() ) Languages.Register( event );
-            if( Textures.textures.isEmpty()   ) Textures.Register( event );
-            if( Models.models.isEmpty()       ) Models.Register( event );
+            if( !Languages.over ) Languages.Register( event );
+            if( !Textures.over  ) Textures.Register( event );
+            if( !Models.over    ) Models.Register( event );
 
         //----------------------------------------------------------------------
-            Boolean empty = !Files.exists( tmp.getPath( "assets" ) );
+            Boolean empty = !Files.exists( storage.getPath( "assets" ) );
         //----------------------------------------------------------------------
 
-            if( null != mod ) mod.close();
-            if( null != tmp ) tmp.close();
+            //if( null != mod ) mod.close();
+            if( null != storage) storage.close();
 
-            // Don't put tmp.close() near Minecraft.getMinecraft()
+            // Don't put storage.close() near Minecraft.getMinecraft()
             // .refreshResources() as it refreshes before the file IO
             // finishes and you get a broken pack
 
@@ -218,67 +206,6 @@
         } catch ( IOException e ) { e.printStackTrace(); } }
 
     //==============================================================================
-
-        public static class Registration {
-
-        //==========================================================================
-
-            public static void Packs() { try {
-            //----------------------------------------------------------------------
-                Boolean empty  = !Files.exists( tmp.getPath( "assets" ) );
-            //----------------------------------------------------------------------
-
-                if( null != mod ) mod.close();
-                if( null != tmp ) tmp.close();
-
-                // Don't put tmp.close() near Minecraft.getMinecraft()
-                // .refreshResources() as it refreshes before the file IO
-                // finishes and you get a broken pack
-
-            //----------------------------------------------------------------------
-
-                ResourcePackRepository repo;
-
-                repo = Minecraft.getMinecraft().getResourcePackRepository();
-                repo.updateRepositoryEntriesAll();
-
-            //----------------------------------------------------------------------
-
-                List<Entry> all = new ArrayList<>( repo.getRepositoryEntriesAll() );
-                List<Entry> on  = new ArrayList<>( repo.getRepositoryEntries()    );
-
-                all.removeIf( s -> !s.getResourcePackName().contains( Base.name ) );
-                on.removeIf( s -> !s.getResourcePackName().contains( Base.name ) );
-
-            //----------------------------------------------------------------------
-
-                Entry   pack   = on.isEmpty() ? all.get( 0 ) : on.get( 0 );
-                Boolean active = on.contains( pack );
-
-                if(  empty &&  active ) on.remove( pack );
-                if( !empty && !active ) on.add( pack );
-
-            //----------------------------------------------------------------------
-                String tmpName = Base.root + "/resourcepacks/" + Base.name + ".zip";
-            //----------------------------------------------------------------------
-
-                if( empty ) FileUtils.deleteQuietly( Paths.get(tmpName).toFile() );
-
-            //----------------------------------------------------------------------
-                if( empty && !active ) return;
-            //----------------------------------------------------------------------
-
-                repo.setRepositories( on );
-                repo.updateRepositoryEntriesAll();
-
-                Minecraft.getMinecraft().refreshResources();
-
-            //----------------------------------------------------------------------
-            } catch ( IOException e ) { e.printStackTrace(); } }
-
-        //==========================================================================
-
-        }
 
     //==============================================================================
 
