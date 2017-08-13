@@ -1,195 +1,102 @@
-//==================================================================================
+//==============================================================================================
 
     package com.saftno.compressions;
 
-//==================================================================================
+//==============================================================================================
 
-    import net.minecraft.block.Block;
+    import com.google.common.collect.*;
+    import com.saftno.compressions.Configurations.Entry;
+    import com.saftno.compressions.ItemBlocks.Compressed.ItemX;
+    import com.saftno.compressions.ResourcePacks.Type;
+
+//==============================================================================================
+
     import net.minecraft.client.Minecraft;
-    import net.minecraft.client.resources.Language;
     import net.minecraft.client.resources.LanguageManager;
-    import net.minecraft.item.ItemStack;
-    import net.minecraft.util.ResourceLocation;
-    import net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent;
-    import net.minecraftforge.common.MinecraftForge;
-    import org.apache.commons.lang3.StringUtils;
 
-//==================================================================================
+//==============================================================================================
 
-    import java.nio.file.FileSystem;
+    import java.io.IOException;
+    import java.nio.file.Files;
+    import java.nio.file.Path;
     import java.util.*;
+    import java.util.stream.Collectors;
 
-//==================================================================================
-    @SuppressWarnings( { "WeakerAccess" , "unused" } ) // @Mod.EventBusSubscriber
-//==================================================================================
+//==============================================================================================
 
     public class Languages {
-    //==============================================================================
+    //==========================================================================================
+    // Setup
+    //==========================================================================================
 
-        public static Boolean over = false;
+        public static void Register() {
+        //--------------------------------------------------------------------------------------
 
-    //==============================================================================
+            Generate();
 
-        public static Set<String> languages = new HashSet<>();
-
-    //==============================================================================
-
-        public static String fNew = "";
-        public static String fOld = "";
-
-    //==============================================================================
-
-        static /* set file locations */ {
-        //--------------------------------------------------------------------------
+        //--------------------------------------------------------------------------------------
         }
 
-    //==============================================================================
-        // @SubscribeEvent
-    //==============================================================================
+        public static void Generate() { try {
+        //--------------------------------------------------------------------------------------
 
-        public static void Register( DrawScreenEvent event ) {
-        //--------------------------------------------------------------------------
-            if( !Resources.storage.isOpen() ) return;
-            //if( null != Resources.mod ) if( !Resources.mod.isOpen()
-            //        ) return;
-        //--------------------------------------------------------------------------
-
-        //--------------------------------------------------------------------------
-            Minecraft minecraft = Minecraft.getMinecraft();
-        //--------------------------------------------------------------------------
-
-            LanguageManager manager  = minecraft.getLanguageManager();
-            Language        language = manager.getCurrentLanguage();
-            String          code     = language.getLanguageCode();
-
-        //--------------------------------------------------------------------------
+            LanguageManager manager  = Minecraft.getMinecraft().getLanguageManager();
+            String          code     = manager.getCurrentLanguage().getLanguageCode();
 
             String front = code.split( "_" )[0];
             String back  = code.split( "_" )[1];
 
-        //--------------------------------------------------------------------------
+            Path lower = ResourcePacks.Path( Type.LANGUAGE , front + "_" + back.toLowerCase() );
+            Path upper = ResourcePacks.Path( Type.LANGUAGE , front + "_" + back.toUpperCase() );
 
-            code = front + "_" + back.toLowerCase();
+        //--------------------------------------------------------------------------------------
 
-            fNew = "/assets/" + Base.modId + "/lang/" + code + ".lang";
+            Map<String , String> lines = new HashMap<>();
 
-        //--------------------------------------------------------------------------
+            if( Files.exists( lower ) )
+                lines = Files.newBufferedReader( lower )
+                             .lines()
+                             .collect( Collectors.toMap( s -> s.split( "=" )[0] ,
+                                                         s -> s.split( "=" )[1] ) );
 
-            code = front + "_" + back.toUpperCase();
+        //--------------------------------------------------------------------------------------
+            for( ItemBlocks.Compressed compressed : ItemBlocks.entries ) {
+        //--------------------------------------------------------------------------------------
 
-            fOld = "/assets/" + Base.modId + "/lang/" + code + ".lang";
+                Entry  entry = compressed.getEntry();
 
-        //--------------------------------------------------------------------------
+                String extra = entry.NBTAsExtraDescription();
 
-            Generate();
+            //----------------------------------------------------------------------------------
+                for( ItemX item : compressed.items ) {
+            //----------------------------------------------------------------------------------
 
-        //----------------------------------------------------------------------
+                    String name = item.getRegistryName().getResourcePath().toString();
+                    String desc = item.level+ "x" +entry.Width+ " " +item.base.getDisplayName();
 
-            over = true;
+                    lines.put( "tile." + name + ".name" , desc + extra );
+                    lines.put( "item." + name + ".name" , desc + extra );
 
-        //--------------------------------------------------------------------------
-            MinecraftForge.EVENT_BUS.unregister( Languages.class );
-        //--------------------------------------------------------------------------
-        }
+        //--------------------------------------------------------------------------------------
+            } }
+        //--------------------------------------------------------------------------------------
 
-        public static void Generate() { //try {
-        //--------------------------------------------------------------------------
-            if( Blocks.blocks.values.isEmpty() ) return;
-        //--------------------------------------------------------------------------
+            List<String> keys = new ArrayList<>( lines.keySet() );
+            Collections.sort( keys );
 
-            //FileSystem mod = Resources.mod;
-            FileSystem tmp = Resources.storage;
+            String content = "";
 
-        //--------------------------------------------------------------------------
+            for( String key : keys ) content += key + "=" + lines.get( key ) + "\n";
 
-            String[] content = new String[0];
+        //--------------------------------------------------------------------------------------
 
-        //--------------------------------------------------------------------------
-        /*    if( null != mod ) { if( Files.exists( mod.getPath( fNew ) ) ) {
-        //--------------------------------------------------------------------------
+            ResourcePacks.Write( content , Type.LANGUAGE , front + "_" + back.toLowerCase() );
 
-                InputStream input = Files.newInputStream( mod.getPath( fNew ) );
+        //--------------------------------------------------------------------------------------
+        } catch( IOException ex ) { ex.printStackTrace(); } }
 
-                content = IOUtils.toString( input , "utf-8" ).split("\n");
-
-                input.close();
-
-        //--------------------------------------------------------------------------
-            } }//*/
-        //--------------------------------------------------------------------------
-
-            List<String> previous = new ArrayList<>( Arrays.asList( content ) );
-            previous.removeIf( s -> !s.contains( "tile." ) );
-
-            Set<String> existing = new HashSet<>();
-
-        //--------------------------------------------------------------------------
-            for( String line : previous ) {
-        //--------------------------------------------------------------------------
-
-                String name = line.split( "tile." )[1].split( ".name" )[0];
-
-                existing.add( name );
-
-        //--------------------------------------------------------------------------
-            }
-        //--------------------------------------------------------------------------
-
-            String entries = "";
-
-        //--------------------------------------------------------------------------
-            for( Block entry : Blocks.blocks ) {
-        //--------------------------------------------------------------------------
-
-                if( !( entry instanceof Blocks.Compressed) ) continue;
-
-                Blocks.Compressed block = (Blocks.Compressed) entry;
-
-                ItemStack base = block.stem;
-
-            //----------------------------------------------------------------------
-
-                ResourceLocation loc = block.getRegistryName();
-
-                if( null == loc ) return;
-
-                String name = loc.getResourcePath();
-                String desc = block.level + "x " + base.getDisplayName();
-
-            //----------------------------------------------------------------------
-
-                if( existing.contains( name ) ) continue;
-
-            //----------------------------------------------------------------------
-
-                languages.add( name );
-
-                entries = entries.concat( "\ntile." + name + ".name=" + desc );
-
-        //--------------------------------------------------------------------------
-            }
-        //--------------------------------------------------------------------------
-
-            if( entries.isEmpty() ) return;
-
-            entries = "\n" + entries + "\n\n#" + StringUtils.repeat( "=" , 99 );
-
-        //--------------------------------------------------------------------------
-
-            //if( null != mod ) Resources.Append( entries , mod.getPath(
-             //       fNew ) );
-            //if( null != mod ) Resources.Append( entries , mod.getPath(
-            //       fOld ) );
-
-            if( null != tmp ) Resources.Append( entries , tmp.getPath( fNew ) );
-            if( null != tmp ) Resources.Append( entries , tmp.getPath( fOld ) );
-
-        //--------------------------------------------------------------------------
-        } /*catch ( IOException e ) { e.printStackTrace(); } }*/
-
-    //==============================================================================
+    //==========================================================================================
 
     }
 
-//==================================================================================
-
+//==============================================================================================
