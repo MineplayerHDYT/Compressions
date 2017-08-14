@@ -230,8 +230,8 @@
 
     //==========================================================================================
 
-        public static File Readme  = new File( root + "README.txt");
-        public static File Entries = new File( root + "entries.cfg");
+        public static File Readme  = new File( root + "README.txt"  );
+        public static File Entries = new File( root + "entries.cfg" );
 
     //==========================================================================================
     // Setup
@@ -313,7 +313,7 @@
 "            , Height = 2",
 "            , Mod    = storagedrawers",
 "            , Entry  = basicdrawers",
-"            , NBT    = { material: ¤spruce¤ } ]",
+"            , NBT    = { material: ¤birch¤ } ]",
 "",
 "#==================================================================================================="
             } ).replace( "¤" , "\"" ).getBytes();
