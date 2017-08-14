@@ -4,12 +4,11 @@
 
 //==============================================================================================
 
-    import com.esotericsoftware.yamlbeans.YamlException;
-    import com.esotericsoftware.yamlbeans.YamlReader;
-
-//==============================================================================================
-
+    import com.google.gson.JsonObject;
+    import com.google.gson.JsonParser;
     import net.minecraft.enchantment.Enchantment;
+    import net.minecraft.nbt.JsonToNBT;
+    import net.minecraft.nbt.NBTException;
     import net.minecraft.potion.PotionEffect;
     import net.minecraft.potion.PotionType;
     import net.minecraft.util.ResourceLocation;
@@ -23,7 +22,6 @@
     import java.io.File;
     import java.io.IOException;
     import java.util.ArrayList;
-    import java.util.HashMap;
     import java.util.List;
 
 //==============================================================================================
@@ -99,83 +97,51 @@
             }
 
         //======================================================================================
-        // Usage
+        // Helpers
         //======================================================================================
 
-            public Entry() {}
-
-        //======================================================================================
-
-            public Entry( String content ) { try {
-            //----------------------------------------------------------------------------------
-                if( !content.contains( "[" ) ) return;
+            public void Parse( String content ) { try {
             //----------------------------------------------------------------------------------
 
-                content = content.split( "\\[" , 2 )[1];
+                content = StringUtils.trim( content );
 
-                content = content.replaceAll(   "="   ,  ":"  );
-                content = content.replaceAll(  "\\["  ,  ""   );
-                content = content.replaceAll(   "]$"  ,  ""   );
-                content = content.replaceAll( ",\\s*" ,  ","  );
-                content = content.replaceAll(   ","   , "\n"  );
+                content = content.replaceAll( ":$"  , ""  );
+                content = content.replaceAll( "="   , ":" );
+                content = content.replaceAll( "^\\[" , "{" );
+                content = content.replaceAll( "]$"  , "}" );
 
             //----------------------------------------------------------------------------------
 
-                HashMap<String, Object> in = (HashMap) new YamlReader( content ).read();
+                content = StringUtils.trim( content );
+
+                if( !content.startsWith( "{" ) ) content = "{" + content + "}";
+
+                content = content.replaceAll( "\n\\s*(\\w)" , ",$1" );
 
             //----------------------------------------------------------------------------------
 
-                Boolean width  = in.containsKey( "Width"  );
-                Boolean height = in.containsKey( "Height" );
-                Boolean mod    = in.containsKey( "Mod"    );
-                Boolean entry  = in.containsKey( "Entry"  );
-                Boolean meta   = in.containsKey( "Meta"   );
-                Boolean nbt    = in.containsKey( "NBT"    );
+                JsonObject in = new JsonParser().parse( content ).getAsJsonObject();
 
             //----------------------------------------------------------------------------------
 
-                if( width  ) Width  = Integer.parseInt( (String) in.get( "Width"  ) );
-                if( height ) Height = Integer.parseInt( (String) in.get( "Height" ) );
-                if( meta   ) Meta   = Integer.parseInt( (String) in.get( "Meta"   ) );
-                if( mod    ) Mod    = (String) in.get( "Mod"   );
-                if( entry  ) Entry  = (String) in.get( "Entry" );
-                if( nbt    ) NBT    = (String) in.get( "NBT"   );
-
-            //----------------------------------------------------------------------------------
-            } catch( YamlException ex ) { ex.printStackTrace(); } }
-
-        //======================================================================================
-
-            public Entry( Entry another , HashMap<String , Object> in ) {
-            //----------------------------------------------------------------------------------
-
-                this.Width  = another.Width;
-                this.Height = another.Height;
-                this.Mod    = another.Mod;
-                this.Entry  = another.Entry;
-                this.Meta   = another.Meta;
-                this.NBT    = another.NBT;
+                Boolean width  = in.has( "Width"  );
+                Boolean height = in.has( "Height" );
+                Boolean mod    = in.has( "Mod"    );
+                Boolean entry  = in.has( "Entry"  );
+                Boolean meta   = in.has( "Meta"   );
+                Boolean nbt    = in.has( "NBT"    );
 
             //----------------------------------------------------------------------------------
 
-                Boolean width  = in.containsKey( "Width"  );
-                Boolean height = in.containsKey( "Height" );
-                Boolean mod    = in.containsKey( "Mod"    );
-                Boolean entry  = in.containsKey( "Entry"  );
-                Boolean meta   = in.containsKey( "Meta"   );
-                Boolean nbt    = in.containsKey( "NBT"    );
+                if( width  ) Width  = Integer.parseInt( in.get( "Width"  ).getAsString() );
+                if( height ) Height = Integer.parseInt( in.get( "Height" ).getAsString() );
+                if( meta   ) Meta   = Integer.parseInt( in.get( "Meta"   ).getAsString() );
+                if( mod    ) Mod    = in.get( "Mod"   ).getAsString();
+                if( entry  ) Entry  = in.get( "Entry" ).getAsString();
+                if( nbt    ) NBT    = JsonToNBT.getTagFromJson("" + in.get( "NBT")).toString();
 
             //----------------------------------------------------------------------------------
-
-                if( width  ) Width  = Integer.parseInt( (String) in.get( "Width"  ) );
-                if( height ) Height = Integer.parseInt( (String) in.get( "Height" ) );
-                if( meta   ) Meta   = Integer.parseInt( (String) in.get( "Meta"   ) );
-                if( mod    ) Mod    = (String) in.get( "Mod"   );
-                if( entry  ) Entry  = (String) in.get( "Entry" );
-                if( nbt    ) NBT    = (String) in.get( "NBT"   );
-
-            //----------------------------------------------------------------------------------
-            }
+            } catch ( NBTException ex ) { ex.printStackTrace(); } }
 
         //======================================================================================
 
@@ -229,6 +195,32 @@
             }
 
         //======================================================================================
+        // Usage
+        //======================================================================================
+
+            public Entry() {}
+            public Entry( String content ) { this.Parse( content ); }
+
+        //======================================================================================
+
+            public Entry( Entry def , String content ) {
+            //----------------------------------------------------------------------------------
+
+                this.Width  = def.Width;
+                this.Height = def.Height;
+                this.Mod    = def.Mod;
+                this.Entry  = def.Entry;
+                this.Meta   = def.Meta;
+                this.NBT    = def.NBT;
+
+            //----------------------------------------------------------------------------------
+
+                this.Parse( content );
+
+            //----------------------------------------------------------------------------------
+            }
+
+        //======================================================================================
 
         }
 
@@ -239,7 +231,7 @@
     //==========================================================================================
 
         public static File Readme  = new File( root + "README.txt");
-        public static File Entries = new File( root + "entries.yaml");
+        public static File Entries = new File( root + "entries.cfg");
 
     //==========================================================================================
     // Setup
@@ -260,16 +252,16 @@
 "#===================================================================================================",
 "#                                         Examples",
 "#===================================================================================================",
-"#",
-"#    Entries:",
-"#                                 ┌───┐",
-"#        - Width:  [9:  2 ~ 9]    │ ← │    The amount of items per pack",
-"#          Height: [3:  0 ~ 8]    │ ← │    How many levels of compression to have",
-"#          Mod:    [:    text]    │ ← │    The name of the mod",
-"#          Entry:  [:    text]    │ ← │    The name of the item/block",
-"#          Meta:   [0: 0 ~ 15]    │ ← │    The variant of the item/block",
-"#          NBT:    [:    text]    │ ← │    The NBT tag of the item/block",
-"#                                 └───┘",
+"#                         ┌───┐",
+"#    Entries[ ... ]:      │ ← │    Default values for all entries in this blocks",
+"#                         │   │",
+"#        - Width:  ...    │ ← │    [9:  2 ~ 9] - The amount of items per pack",
+"#          Height: ...    │ ← │    [3:  0 ~ 8] - How many levels of compression to have",
+"#          Mod:    ...    │ ← │    [:    text] - The name of the mod",
+"#          Entry:  ...    │ ← │    [:    text] - The name of the item/block",
+"#          Meta:   ...    │ ← │    [0: 0 ~ 15] - The variant of the item/block",
+"#          NBT:    ...    │ ← │    [:    JSON] - The NBT tag of the item/block",
+"#                         └───┘",
 "#===================================================================================================",
 "",
 "    Entries:",
@@ -289,6 +281,8 @@
 "          Meta:  0",
 "",
 "#===================================================================================================",
+"# The defaults section makes adding entries more convenient",
+"#===================================================================================================",
 "",
 "     Entries[Mod = minecraft, Meta = 0]:",
 "",
@@ -298,38 +292,31 @@
 "         - Entry: dirt",
 "",
 "#===================================================================================================",
-"",
-"     Entries[Width = 5, Mod = minecraft, Meta = 0]: [ { Entry: cobblestone }",
-"                                                    , { Entry: sand        }",
-"                                                    , { Entry: gravel      }",
-"                                                    , { Entry: dirt        } ]",
-"",
+"# Capitalization in the NBT tag doesn't matter (But it does in the quoted parts)",
 "#===================================================================================================",
 "",
-"     Entries[Mod = minecraft, Entry = potion]:",
-"                                                 ",
-"         - NBT: '{ pOtIoN: ~minecraft:strong_healing~    }'",
-"         - NBT: '{ Potion: ~minecraft:long_regeneration~ }'",
-"         - NBT: '{ potion: ~minecraft:long_strength~     }'",
+"     Entries[ Mod = minecraft , Entry = potion ]: - NBT: { pOtIoN: ¤minecraft:strong_healing¤    }",
+"                                                  - NBT: { Potion: ¤minecraft:long_regeneration¤ }",
+"                                                  - NBT: { potion: ¤minecraft:long_strength¤     }",
 "",
-"     Entries[Mod = minecraft, Entry = spawn_egg]:",
+"     Entries[ Mod   = minecraft",
+"            , Entry = spawn_egg ]:",
 "",
-"         - NBT: '{ EntityTag: { ID: ~minecraft:pig~    } }'",
-"         - NBT: '{ EntityTag: { id: ~minecraft:zombie~ } }'",
+"         - NBT: { EntityTag: { ID: ¤minecraft:pig¤    } }",
+"         - NBT: { EntityTag: { id: ¤minecraft:zombie¤ } }",
 "",
 "#===================================================================================================",
+"# You can have everything in the defaults section (Just remove the ':' from the end)",
+"#===================================================================================================",
 "",
-"     Entries:",
-"",
-"         - Width:  4",
-"           Height: 2",
-"           Mod:    storagedrawers",
-"           Entry:  basicdrawers",
-"           Meta:   2",
-"           NBT:    '{ material: ~spruce~ }'",
+"     Entries[ Width  = 4",
+"            , Height = 2",
+"            , Mod    = storagedrawers",
+"            , Entry  = basicdrawers",
+"            , NBT    = { material: ¤spruce¤ } ]",
 "",
 "#==================================================================================================="
-            } ).replace( "~" , "\"" ).getBytes();
+            } ).replace( "¤" , "\"" ).getBytes();
 
             if( !Entries.exists() ) FileUtils.writeByteArrayToFile( Entries , entries );
 
@@ -345,29 +332,58 @@
             List<Entry> entries = new ArrayList<>();
         //--------------------------------------------------------------------------------------
 
-            String content = FileUtils.readFileToString( Entries , "utf8" );
+            String[] lines = FileUtils.readFileToString( Entries , "utf8" ).split( "\n" );
+
+            for( int i = 0; i < lines.length; i++ ) lines[i] = (" " + lines[i]).split("#")[0];
+
+        //--------------------------------------------------------------------------------------
+
+            String content = String.join( "\n" , lines ).split("---")[1].split("\\.\\.\\.")[0];
 
             content = content.replaceAll( "\n[^\n#]*Entries" , "\n- Entries" );
-            content = content.replaceAll( "\n- Entries\\s*" , "\n- Entries" );
+            content = content.replaceAll( "\n- Entries\\s*"  , "\n- Entries" );
+
+            content = content.replaceAll( "]\\s*:"  , "]:"   );
+            content = content.replaceAll( "\n\\s*-" , "\n-"  );
+            content = content.replaceAll( ":\\s*-"  , ":\n-" );
 
         //--------------------------------------------------------------------------------------
-            for( Object object : (ArrayList) new YamlReader( content ).read() ) {
+            for( String section : content.split( "\n- Entries" ) ) {
         //--------------------------------------------------------------------------------------
 
-                HashMap entriesBlock = (HashMap) object;
-                Entry   defaultEntry = new Entry( (String) entriesBlock.keySet().toArray()[0] );
+                section = StringUtils.trimToEmpty( section );
+
+            //----------------------------------------------------------------------------------
+                if( section.isEmpty() ) continue;
+            //----------------------------------------------------------------------------------
+
+                Boolean noEntries = section.startsWith( "[" ) && section.endsWith( "]" );
+
+                if( noEntries ) entries.add( new Entry( section ) );
+                if( noEntries ) continue;
 
             //----------------------------------------------------------------------------------
 
-                if( null == entriesBlock.values().toArray()[0] ) continue;
+                if( !section.contains( "\n-" ) ) continue;
+
+                String header =         StringUtils.trim( (section + "\n").split("\n-", 2)[0] );
+                String body   = "\n-" + StringUtils.trim( (section + "\n").split("\n-", 2)[1] );
 
             //----------------------------------------------------------------------------------
-                for( Object entryObj : (List) entriesBlock.values().toArray()[0] ) {
+
+                Entry def = new Entry( header );
+
+            //----------------------------------------------------------------------------------
+                for( String subsection : body.split( "\n-" ) ) {
             //----------------------------------------------------------------------------------
 
-                    entries.add( new Entry( defaultEntry , (HashMap) entryObj ) );
+                    if( StringUtils.trimToEmpty( subsection ).isEmpty() ) continue;
 
-        //----------------------------------------------------------------------------------
+                //------------------------------------------------------------------------------
+
+                    entries.add( new Entry( def , subsection ) );
+
+        //--------------------------------------------------------------------------------------
             } } return entries;
         //--------------------------------------------------------------------------------------
         } catch( IOException ex ) { ex.printStackTrace(); return null; } }

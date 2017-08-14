@@ -4,7 +4,6 @@
 
 //==============================================================================================
 
-    import net.minecraft.item.ItemStack;
     import net.minecraft.item.crafting.IRecipe;
     import net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent;
     import net.minecraftforge.event.RegistryEvent.Register;
