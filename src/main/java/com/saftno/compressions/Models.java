@@ -67,16 +67,43 @@
         //--------------------------------------------------------------------------------------
 
         //--------------------------------------------------------------------------------------
+            final String cube = String.join( "\n" , new String[] {
+        //--------------------------------------------------------------------------------------
+
+                "{ 'forge_marker' : 1                                                      ",
+                ", 'defaults' : { 'model'     : 'cube'                                     ",
+                "               , 'textures'  : { 'down'    : '[MODID]:blocks/[DOWN]'      ",
+                "                               , 'up'      : '[MODID]:blocks/[UP]'        ",
+                "                               , 'north'   : '[MODID]:blocks/[NORTH]'     ",
+                "                               , 'south'   : '[MODID]:blocks/[SOUTH]'     ",
+                "                               , 'west'    : '[MODID]:blocks/[WEST]'      ",
+                "                               , 'east'    : '[MODID]:blocks/[EAST]'      ",
+                "                               , 'particle': '[MODID]:blocks/[SOUTH]' } } ",
+                ", 'variants' : { 'normal'    : [ { } ]                                    ",
+                "               , 'inventory' : [ { } ] } }                                "
+
+        //--------------------------------------------------------------------------------------
+            } ).replace( "'" , "\"" ).replace( "[MODID]" , Base.modId );
+        //--------------------------------------------------------------------------------------
+
+        //--------------------------------------------------------------------------------------
             for(Compressed compressed: ItemBlocks.entries) { for(ItemX item: compressed.items) {
         //--------------------------------------------------------------------------------------
 
                 String name = item.getRegistryName().getResourcePath();
-                String json = column.replace( "[ENTRY]" , name );
 
-            //--------------------------------------------------------------------------------------
+                String json = cube.replace( "[DOWN]"  , name + "_down"  )
+                                  .replace( "[UP]"    , name + "_up"    )
+                                  .replace( "[NORTH]" , name + "_north" )
+                                  .replace( "[SOUTH]" , name + "_south" )
+                                  .replace( "[WEST]"  , name + "_west"  )
+                                  .replace( "[EAST]"  , name + "_east"  )
+                                  .replace( "[SOUTH]" , name + "_south" );
+
+            //----------------------------------------------------------------------------------
 
                 Path        path   = ResourcePacks.Path( Type.MODEL , name );
-                InputStream stream = Files.exists(path)? Files.newInputStream(path): null;
+                InputStream stream = Files.exists( path )? Files.newInputStream( path ): null;
                 String      data   = null == stream ? "" : IOUtils.toString( stream , "utf8" );
 
                 if( !data.equals( json ) ) ResourcePacks.Write( json , Type.MODEL , name );

@@ -9,7 +9,6 @@
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.resources.ResourcePackRepository;
     import net.minecraft.client.resources.ResourcePackRepository.Entry;
-    import net.minecraftforge.common.crafting.CraftingHelper;
     import org.apache.commons.io.FileUtils;
     import org.apache.commons.io.IOUtils;
 
@@ -18,12 +17,14 @@
     import javax.imageio.ImageIO;
     import java.awt.image.BufferedImage;
     import java.io.IOException;
-    import java.io.InputStream;
     import java.io.OutputStream;
-    import java.nio.file.*;
+    import java.nio.file.FileSystem;
+    import java.nio.file.FileSystems;
+    import java.nio.file.Files;
+    import java.nio.file.Path;
+    import java.nio.file.Paths;
     import java.util.ArrayList;
     import java.util.List;
-    import java.util.stream.Collectors;
 
 //==============================================================================================
 
@@ -31,7 +32,7 @@
 
     //==========================================================================================
 
-        public enum Type { ROOT , RECIPE , MODEL , TEXTURE , LANGUAGE }
+        public enum Type { ROOT , RECIPE , LANGUAGE , MODEL , TEXTURE }
 
     //==========================================================================================
 
@@ -70,12 +71,18 @@
                 Path   metaPath = resPack.getPath( "pack.mcmeta" );
                 String content  = IOUtils.toString( Files.newInputStream( metaPath ) , "utf8" );
 
-                String version = new JsonParser().parse( content ).getAsJsonObject()
-                                                 .get( "pack" ).getAsJsonObject()
-                                                 .get( "description" ).getAsString();
+                JsonObject pack = new JsonParser().parse( content ).getAsJsonObject()
+                                                  .get( "pack" ).getAsJsonObject();
+
+                String version = pack.get( "description" ).getAsString();
+
+                Boolean darker = !pack.has("_comment") || pack.get("_comment").getAsBoolean();
+
+                Boolean newer   = !version.equals( Base.version );
+                Boolean texdiff = !darker.equals( Configurations.getSettingsDarker() );
 
             //----------------------------------------------------------------------------------
-                if( !version.equals( Base.version ) ) {
+                if( newer || texdiff ) {
             //----------------------------------------------------------------------------------
 
                     resPack.close();
@@ -96,7 +103,8 @@
             String packData = String.join( "\n" , new String[] {
         //--------------------------------------------------------------------------------------
                 "{ 'pack' : { 'pack_format' : 3 " ,
-                "           , 'description' : '" + Base.version + "' } } " ,
+                "           , 'description' : '" + Base.version + "' " ,
+                "           , '_comment' : '" + Configurations.getSettingsDarker() + "' } } " ,
         //--------------------------------------------------------------------------------------
             } ).replace( "'" , "\"" );
         //--------------------------------------------------------------------------------------
@@ -110,7 +118,7 @@
     // Usage
     //==========================================================================================
 
-        public static Path Path ( Type type , String name ) {
+        public static Path Path (Type type , String name ) {
         //--------------------------------------------------------------------------------------
 
             String location = "";
@@ -213,6 +221,8 @@
         //----------------------------------------------------------------------
             Boolean empty = !Files.exists( resPack.getPath( "assets" ) );
         //----------------------------------------------------------------------
+
+            // Check out IResourcePack
 
             resPack.close();
 

@@ -6,12 +6,14 @@
 
     import com.google.gson.JsonObject;
     import com.google.gson.JsonParser;
+    import com.sun.org.apache.xpath.internal.operations.Bool;
     import net.minecraft.enchantment.Enchantment;
     import net.minecraft.nbt.JsonToNBT;
     import net.minecraft.nbt.NBTException;
     import net.minecraft.potion.PotionEffect;
     import net.minecraft.potion.PotionType;
     import net.minecraft.util.ResourceLocation;
+    import net.minecraftforge.common.config.Configuration;
     import net.minecraftforge.fml.common.registry.EntityEntry;
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
     import org.apache.commons.io.FileUtils;
@@ -230,8 +232,8 @@
 
     //==========================================================================================
 
-        public static File Readme  = new File( root + "README.txt"  );
-        public static File Entries = new File( root + "entries.cfg" );
+        public static File Entries  = new File( root + "entries.cfg"  );
+        public static File Settings = new File( root + "settings.cfg" );
 
     //==========================================================================================
     // Setup
@@ -253,7 +255,7 @@
 "#                                         Examples",
 "#===================================================================================================",
 "#                         ┌───┐",
-"#    Entries[ ... ]:      │ ← │    Default values for all entries in this blocks",
+"#    Entries[ ... ]:      │ ← │    Default values for all entries in this block",
 "#                         │   │",
 "#        - Width:  ...    │ ← │    [9:  2 ~ 9] - The amount of items per pack",
 "#          Height: ...    │ ← │    [3:  0 ~ 8] - How many levels of compression to have",
@@ -319,6 +321,12 @@
             } ).replace( "¤" , "\"" ).getBytes();
 
             if( !Entries.exists() ) FileUtils.writeByteArrayToFile( Entries , entries );
+
+        //--------------------------------------------------------------------------------------
+
+            if( !Settings.exists() ) FileUtils.touch( Settings );
+
+            getSettingsDarker();
 
         //--------------------------------------------------------------------------------------
         } catch( IOException ex ) { ex.printStackTrace(); } } }
@@ -387,6 +395,28 @@
             } } return entries;
         //--------------------------------------------------------------------------------------
         } catch( IOException ex ) { ex.printStackTrace(); return null; } }
+
+    //==========================================================================================
+
+        public static Boolean getSettingsDarker() {
+
+            Configuration file = new Configuration( Settings );
+
+        //--------------------------------------------------------------------------------------
+            file.load();
+        //--------------------------------------------------------------------------------------
+
+            Boolean darker = file.getBoolean( "Darken" , "Options" , true , "Whether to " +
+                    "have the images of higher levels get progressively darker" );
+
+        //--------------------------------------------------------------------------------------
+            file.save();
+        //--------------------------------------------------------------------------------------
+
+            return darker;
+
+        //--------------------------------------------------------------------------------------
+        }
 
     //==========================================================================================
 

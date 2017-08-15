@@ -4,22 +4,28 @@
 
 //==============================================================================================
 
+    import com.google.common.io.ByteStreams;
     import com.saftno.compressions.ItemBlocks.Compressed;
     import com.saftno.compressions.ItemBlocks.Compressed.ItemX;
     import com.saftno.compressions.ResourcePacks.Type;
 
 //==============================================================================================
 
+    import io.netty.buffer.ByteBufInputStream;
     import net.minecraft.block.Block;
+    import net.minecraft.block.state.IBlockState;
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.renderer.RenderItem;
+    import net.minecraft.client.renderer.block.model.BakedQuad;
     import net.minecraft.client.renderer.block.model.IBakedModel;
     import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
     import net.minecraft.client.renderer.texture.TextureManager;
     import net.minecraft.client.renderer.texture.TextureMap;
     import net.minecraft.client.shader.Framebuffer;
+    import net.minecraft.init.Blocks;
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemStack;
+    import net.minecraft.util.EnumFacing;
     import net.minecraft.util.ResourceLocation;
     import net.minecraft.util.math.AxisAlignedBB;
     import net.minecraftforge.client.ForgeHooksClient;
@@ -34,8 +40,9 @@
 //==============================================================================================
 
     import javax.imageio.ImageIO;
-    import java.awt.*;
+    import java.awt.Color;
     import java.awt.image.BufferedImage;
+    import java.io.ByteArrayInputStream;
     import java.io.IOException;
     import java.io.InputStream;
     import java.io.OutputStream;
@@ -45,6 +52,8 @@
     import java.nio.file.Files;
     import java.nio.file.Path;
     import java.nio.file.Paths;
+    import java.util.List;
+    import java.util.stream.IntStream;
 
 //==============================================================================================
     @SuppressWarnings( { "WeakerAccess" , "unused" } )  @Mod.EventBusSubscriber
@@ -53,12 +62,26 @@
     public class Textures {
 
     //==========================================================================================
-    // Setup
+    // Structure
     //==========================================================================================
 
         public static int[][] frame;
+        public static int[][] wooden;
 
-        static {
+    //==========================================================================================
+
+        public static final Integer w3D = 256;
+        public static final Integer h3D = 256;
+
+    //==========================================================================================
+
+        public static IntBuffer ForgeEndScreen;
+
+    //==========================================================================================
+    // Setup
+    //==========================================================================================
+
+        static /* Setting up frame data */ {
         //--------------------------------------------------------------------------------------
 
             int[] bytes = new int[] {   0x24 , 0x19 , 0x09 , 0xff , 0x2a , 0x1f , 0x11 , 0xff ,
@@ -213,11 +236,7 @@
         //--------------------------------------------------------------------------------------
         }
 
-    //==========================================================================================
-
-        public static int[][] wooden;
-
-        static {
+        static /* Setting up wooden side data */  {
         //--------------------------------------------------------------------------------------
 
             int[] bytes = new int[] {   0x9a , 0x9a , 0x9a , 0xff , 0x84 , 0x84 , 0x84 , 0xff ,
@@ -374,15 +393,6 @@
 
     //==========================================================================================
 
-        public static final Integer w3D = 256;
-        public static final Integer h3D = 256;
-
-    //==========================================================================================
-
-        public static IntBuffer ForgeEndScreen;
-
-    //==========================================================================================
-
         @SubscribeEvent public static void forgeEnd( InitGuiEvent event ) {
         //--------------------------------------------------------------------------------------
             if( null != ForgeEndScreen) return;
@@ -415,61 +425,80 @@
 
         public static void Generate() {
         //--------------------------------------------------------------------------------------
+
+            boolean darken = Configurations.getSettingsDarker();
+
+        //──────────────────────────────────────────────────────────────────────────────────────
             for( Compressed compressed : ItemBlocks.entries ) {
         //--------------------------------------------------------------------------------------
 
-                Integer completed = compressed.items.size();
+                int[] incomplete = new int[compressed.items.size()];
 
             //----------------------------------------------------------------------------------
-                for( ItemX item : compressed.items ) {
+                for(ItemX item: compressed.items) { for(EnumFacing face: EnumFacing.values()) {
             //----------------------------------------------------------------------------------
+
+                    String side = "_" + face.getName();
 
                     String itemID = item.getRegistryName().getResourcePath();
-                    Path   path   = ResourcePacks.Path( Type.TEXTURE , itemID );
+                    Path   path   = ResourcePacks.Path( Type.TEXTURE , itemID + side );
 
                 //------------------------------------------------------------------------------
 
-                    if( Files.exists( path ) ) completed -= 1;
+                    incomplete[compressed.items.indexOf(item)] += Files.exists( path ) ? 0 : 1;
+
+            //----------------------------------------------------------------------------------
+                } }
+            //----------------------------------------------------------------------------------
+
+                if( 0 == IntStream.of( incomplete ).sum() ) continue;
+
+            //──────────────────────────────────────────────────────────────────────────────────
+                for( EnumFacing face : EnumFacing.values() ) {
+            //----------------------------------------------------------------------------------
+
+                    int[][] pixels = get2DTexData( compressed.stack , face );
+                    int[][] side   = colorPixels ( averagePixel( pixels ) , wooden );
+
+                //------------------------------------------------------------------------------
+
+                    Item base = compressed.stack .getItem();
+                    String name = base.getRegistryName().getResourcePath();
+
+                    Boolean transparent = false;
+
+                    transparent = transparent ||  name.contains( "glass" );
+                    transparent = transparent ||  name.contains( "ice" );
+                    transparent = transparent && !name.contains( "bottle" );
+
+                    int[][] back = transparent ? frame : joinPixels( side , frame );
+
+                //------------------------------------------------------------------------------
+
+                    int[][] joined = joinPixels( back , pixels );
+
+                //------------------------------------------------------------------------------
+                    for( ItemX item : compressed.items ) {
+                //------------------------------------------------------------------------------
+
+                        String  itemSide = "_" + face.getName();
+                        String  itemID   = item.getRegistryName().getResourcePath();
+
+                        int[][] darkened = darken ? darkenPixels(item.level , joined) : joined;
+
+                        ResourcePacks.Write( darkened , Type.TEXTURE , itemID + itemSide );
+
+                //------------------------------------------------------------------------------
+                    }
+                //------------------------------------------------------------------------------
+
+
 
             //----------------------------------------------------------------------------------
                 }
             //----------------------------------------------------------------------------------
 
-                if( 0 == completed ) continue;
-
-            //--------------------------------------------------------------------------------------
-
-                int[][] pixels = get2DTexData( compressed.stack );
-                int[][] side   = colorPixels ( averagePixel( pixels ) , wooden );
-
-            //----------------------------------------------------------------------------------
-
-                Item   base = compressed.stack .getItem();
-                String name = base.getRegistryName().getResourcePath();
-
-                Boolean transparent = false;
-
-                transparent = transparent ||  name.contains( "glass" );
-                transparent = transparent ||  name.contains( "ice" );
-                transparent = transparent && !name.contains( "bottle" );
-
-                int[][] back = transparent ? frame : joinPixels( side , frame );
-
-            //----------------------------------------------------------------------------------
-
-                int[][] joined = joinPixels( back , pixels );
-
-            //----------------------------------------------------------------------------------
-                for( ItemX item : compressed.items ) {
-            //----------------------------------------------------------------------------------
-
-                    String  itemID   = item.getRegistryName().getResourcePath();
-                    int[][] darkened = darkenPixels( item.level , joined );
-
-                    ResourcePacks.Write( darkened , Type.TEXTURE , itemID );
-
-        //--------------------------------------------------------------------------------------
-        } } }
+        } }
 
     //==========================================================================================
     // Manipulate a single pixel
@@ -590,6 +619,112 @@
         }
 
     //==========================================================================================
+
+        public static double[] Bounds( ItemStack stack ) {
+        //--------------------------------------------------------------------------------------
+            double[] bounds = new double[]{ 10 , 10 , 10 , -10 , -10 , -10 };
+        //--------------------------------------------------------------------------------------
+
+            Block       block = Block.getBlockFromItem( stack.getItem() );
+            IBlockState state = block.getBlockState().getBaseState();
+
+        //--------------------------------------------------------------------------------------
+            try {
+        //--------------------------------------------------------------------------------------
+
+                AxisAlignedBB box = state.getBoundingBox( null , null );
+
+                bounds[0] = box.minX;  bounds[1] = box.minY; bounds[2] = box.minZ;
+                bounds[3] = box.maxX;  bounds[4] = box.maxY; bounds[5] = box.maxZ;
+
+                return bounds;
+
+        //--------------------------------------------------------------------------------------
+            } catch( NullPointerException ex ) {  } try {
+        //--------------------------------------------------------------------------------------
+
+                AxisAlignedBB box = state.getBoundingBox( null , null );
+
+                bounds[0] = box.minX;  bounds[1] = box.minY; bounds[2] = box.minZ;
+                bounds[3] = box.maxX;  bounds[4] = box.maxY; bounds[5] = box.maxZ;
+
+                return bounds;
+
+        //--------------------------------------------------------------------------------------
+            } catch( NullPointerException ex ) {  }
+        //--------------------------------------------------------------------------------------
+
+            IBakedModel model = Minecraft.getMinecraft()
+                    .getRenderItem()
+                    .getItemModelMesher()
+                    .getItemModel( stack );
+
+        //--------------------------------------------------------------------------------------
+
+            EnumFacing[] sides = new EnumFacing[] { EnumFacing.NORTH
+                                                  , EnumFacing.WEST
+                                                  , EnumFacing.SOUTH
+                                                  , EnumFacing.EAST };
+
+
+        //--------------------------------------------------------------------------------------
+            for(EnumFacing side: sides) { for(BakedQuad quad: model.getQuads(state, side, 0)) {
+        //--------------------------------------------------------------------------------------
+
+                float x0 = Float.intBitsToFloat( quad.getVertexData()[0 + 7 * 0] );
+                float y0 = Float.intBitsToFloat( quad.getVertexData()[1 + 7 * 0] );
+                float z0 = Float.intBitsToFloat( quad.getVertexData()[2 + 7 * 0] );
+
+                float x1 = Float.intBitsToFloat( quad.getVertexData()[0 + 7 * 1] );
+                float y1 = Float.intBitsToFloat( quad.getVertexData()[1 + 7 * 1] );
+                float z1 = Float.intBitsToFloat( quad.getVertexData()[2 + 7 * 1] );
+
+                float x2 = Float.intBitsToFloat( quad.getVertexData()[0 + 7 * 2] );
+                float y2 = Float.intBitsToFloat( quad.getVertexData()[1 + 7 * 2] );
+                float z2 = Float.intBitsToFloat( quad.getVertexData()[2 + 7 * 2] );
+
+                float x3 = Float.intBitsToFloat( quad.getVertexData()[0 + 7 * 3] );
+                float y3 = Float.intBitsToFloat( quad.getVertexData()[1 + 7 * 3] );
+                float z3 = Float.intBitsToFloat( quad.getVertexData()[2 + 7 * 3] );
+
+            //----------------------------------------------------------------------------------
+
+                if( x0 != x1 || x0 != x2 || x0 != x3 ) if( x0 < bounds[0] ) bounds[0] = x0;
+                if( x0 != x1 || x0 != x2 || x0 != x3 ) if( x1 < bounds[0] ) bounds[0] = x1;
+                if( x0 != x1 || x0 != x2 || x0 != x3 ) if( x2 < bounds[0] ) bounds[0] = x2;
+                if( x0 != x1 || x0 != x2 || x0 != x3 ) if( x3 < bounds[0] ) bounds[0] = x3;
+
+                if( y0 != y1 || y0 != y2 || y0 != y3 ) if( y0 < bounds[1] ) bounds[1] = y0;
+                if( y0 != y1 || y0 != y2 || y0 != y3 ) if( y1 < bounds[1] ) bounds[1] = y1;
+                if( y0 != y1 || y0 != y2 || y0 != y3 ) if( y2 < bounds[1] ) bounds[1] = y2;
+                if( y0 != y1 || y0 != y2 || y0 != y3 ) if( y3 < bounds[1] ) bounds[1] = y3;
+
+                if( z0 != z1 || z0 != z2 || z0 != z3 ) if( z0 < bounds[2] ) bounds[2] = z0;
+                if( z0 != z1 || z0 != z2 || z0 != z3 ) if( z1 < bounds[2] ) bounds[2] = z1;
+                if( z0 != z1 || z0 != z2 || z0 != z3 ) if( z2 < bounds[2] ) bounds[2] = z2;
+                if( z0 != z1 || z0 != z2 || z0 != z3 ) if( z3 < bounds[2] ) bounds[2] = z3;
+
+                if( x0 != x1 || x0 != x2 || x0 != x3 ) if( x0 > bounds[3] ) bounds[3] = x0;
+                if( x0 != x1 || x0 != x2 || x0 != x3 ) if( x1 > bounds[3] ) bounds[3] = x1;
+                if( x0 != x1 || x0 != x2 || x0 != x3 ) if( x2 > bounds[3] ) bounds[3] = x2;
+                if( x0 != x1 || x0 != x2 || x0 != x3 ) if( x3 > bounds[3] ) bounds[3] = x3;
+
+                if( y0 != y1 || y0 != y2 || y0 != y3 ) if( y0 > bounds[4] ) bounds[4] = y0;
+                if( y0 != y1 || y0 != y2 || y0 != y3 ) if( y1 > bounds[4] ) bounds[4] = y1;
+                if( y0 != y1 || y0 != y2 || y0 != y3 ) if( y2 > bounds[4] ) bounds[4] = y2;
+                if( y0 != y1 || y0 != y2 || y0 != y3 ) if( y3 > bounds[4] ) bounds[4] = y3;
+
+                if( z0 != z1 || z0 != z2 || z0 != z3 ) if( z0 > bounds[5] ) bounds[5] = z0;
+                if( z0 != z1 || z0 != z2 || z0 != z3 ) if( z1 > bounds[5] ) bounds[5] = z1;
+                if( z0 != z1 || z0 != z2 || z0 != z3 ) if( z2 > bounds[5] ) bounds[5] = z2;
+                if( z0 != z1 || z0 != z2 || z0 != z3 ) if( z3 > bounds[5] ) bounds[5] = z3;
+
+        //--------------------------------------------------------------------------------------
+            } } return bounds;
+        //--------------------------------------------------------------------------------------
+        }
+
+    //==========================================================================================
     // Get a lot of pixels
     //==========================================================================================
 
@@ -643,7 +778,7 @@
         //--------------------------------------------------------------------------------------
         } catch ( IOException e ) { e.printStackTrace(); return new int[1][1]; } }
 
-        public static int[][] get2DTexData( ItemStack stack ) {
+        public static int[][] get2DTexData( ItemStack stack , EnumFacing face ) {
         //--------------------------------------------------------------------------------------
 
             IBakedModel model = Minecraft.getMinecraft()
@@ -713,16 +848,51 @@
 
         //--------------------------------------------------------------------------------------
 
+            if( face.equals( EnumFacing.DOWN ) )
+                GL11.glRotatef( 180.0F , 0.0F , 0.0F , 1.0F );
+
+        //--------------------------------------------------------------------------------------
+
             Block block = Block.getBlockFromItem( stack.getItem() );
 
         //--------------------------------------------------------------------------------------
-            if( net.minecraft.init.Blocks.AIR != block && rotate ) { try {
+            if( net.minecraft.init.Blocks.AIR != block ) { try {
         //--------------------------------------------------------------------------------------
 
-                AxisAlignedBB box = block.getDefaultState().getBoundingBox(null , null);
+                double[] bounds = Bounds( stack );
 
-                if( box.maxY < 0.5f ) GL11.glRotatef( 90.0F , 1.0F , 0.0F , 0.0F );
+                double height = bounds[4] - bounds[1];
 
+            //----------------------------------------------------------------------------------
+
+                if( height < 0.5f && rotate ) GL11.glRotatef( 90.0F , 1.0F , 0.0F , 0.0F );
+
+            //----------------------------------------------------------------------------------
+                if( height >= 0.5f ) {
+            //----------------------------------------------------------------------------------
+
+                    if( face.equals( EnumFacing.DOWN ) ) {
+                        GL11.glRotatef( -90.0F , 1.0F , 0.0F , 0.0F );
+                        GL11.glRotatef( 180.0F , 0.0F , 1.0F , 0.0F );
+                    }
+
+                    if( face.equals( EnumFacing.UP ) ) // 1
+                        GL11.glRotatef( +90.0F , 1.0F , 0.0F , 0.0F );
+
+                    if( face.equals( EnumFacing.NORTH ) ) // 6
+                        GL11.glRotatef( 180.0F , 0.0F , 1.0F , 0.0F );
+
+                    if( face.equals( EnumFacing.SOUTH ) ) // 3
+                        GL11.glRotatef(   0.0F , 0.0F , 1.0F , 0.0F );
+
+                    if( face.equals( EnumFacing.WEST ) )
+                        GL11.glRotatef( +90.0F , 0.0F , 1.0F , 0.0F );
+
+                    if( face.equals( EnumFacing.EAST ) )
+                        GL11.glRotatef( -90.0F , 0.0F , 1.0F , 0.0F );
+
+            //----------------------------------------------------------------------------------
+                }
         //--------------------------------------------------------------------------------------
             } catch( NullPointerException ex ) { int s = 0; } }
         //--------------------------------------------------------------------------------------
@@ -730,7 +900,7 @@
             ResourceLocation loc = stack.getItem().getRegistryName();
 
         //--------------------------------------------------------------------------------------
-            if( null != loc ){
+            if( null != loc ) {
         //--------------------------------------------------------------------------------------
 
                 boolean bed    = loc.getResourcePath().contains( "bed" );
@@ -818,9 +988,19 @@
 
             Boolean empty = ( 0 == ( averagePixel( data ) & 255 ) );
 
-            if( empty ) rotate = false;
-            if( empty ) data = get2DTexData( stack );
-            if( empty ) rotate = true;
+        //--------------------------------------------------------------------------------------
+
+            if( empty && face == EnumFacing.SOUTH && rotate == false ) return data;
+
+        //--------------------------------------------------------------------------------------
+
+            if( empty && face != EnumFacing.SOUTH ) data = get2DTexData(stack,EnumFacing.SOUTH);
+
+        //--------------------------------------------------------------------------------------
+
+            if( empty && face == EnumFacing.SOUTH ) rotate = false;
+            if( empty && face == EnumFacing.SOUTH ) data = get2DTexData( stack , face );
+            if( empty && face == EnumFacing.SOUTH ) rotate = true;
 
         //--------------------------------------------------------------------------------------
 
@@ -918,7 +1098,7 @@
         //--------------------------------------------------------------------------------------
 
             GL11.glRotatef( -25.0F , 1.0F , 0.0F , 0.0F );
-            GL11.glRotatef( +45.0F , 0.0F , 1.0F , 0.0F );
+            GL11.glRotatef( -45.0F , 0.0F , 1.0F , 0.0F );
 
             TextureManager texMan = Minecraft.getMinecraft().getTextureManager();
             texMan.bindTexture( TextureMap.LOCATION_BLOCKS_TEXTURE );
@@ -1184,7 +1364,7 @@
             BufferedImage image = new BufferedImage( w , h , BufferedImage.TYPE_INT_ARGB );
 
         //--------------------------------------------------------------------------------------
-            for(Compressed compressed: ItemBlocks.entries) { for(ItemX item: compressed.items) {
+            for( ItemBlocks.Compressed cpr: ItemBlocks.entries ) { for( ItemX item: cpr.items ){
         //--------------------------------------------------------------------------------------
 
                 int[][] data = get3DTexData( new ItemStack( item , 1 , 0 ) );
@@ -1221,6 +1401,24 @@
         //--------------------------------------------------------------------------------------
         } catch ( IOException e ) { e.printStackTrace(); } }
 
+
+        public static void getNumbers() {/*
+            String message = "1x4";
+            int width = 100;
+            int height = 100;
+            BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
+
+            Graphics2D graphics = img.createGraphics();
+            graphics.setColor(Color.black);
+            graphics.setFont(new Font("TimesRoman", Font.BOLD, 12));
+
+            FontMetrics fontMetrics = graphics.getFontMetrics();
+            int stringWidth = fontMetrics.stringWidth(message);
+            int stringHeight = fontMetrics.getAscent();
+
+            graphics.drawString(message, (width - stringWidth) / 2, height / 2 + stringHeight / 4);
+            //*/
+        }
     //==========================================================================================
 
     }

@@ -438,6 +438,7 @@
                     if( null != entry.Meta )
                         stacks.removeIf( s -> !entry.Meta.equals( s.getMetadata() ) );
 
+                    if( null != entry.NBT ) stacks.removeIf( s -> !s.hasTagCompound() );
                     if( null != entry.NBT )
                         stacks.removeIf( s -> !s.getTagCompound().toString()
                                                 .replace( " " , "" ).toLowerCase()

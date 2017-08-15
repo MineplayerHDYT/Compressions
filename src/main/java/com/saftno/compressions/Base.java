@@ -33,7 +33,7 @@
 
         public static final String modId   = "compressions";
         public static final String name    = "Compressions";
-        public static final String version = "2.0.0";
+        public static final String version = "2.0.1";
 
     //==========================================================================================
         @Mod.Instance( modId )
@@ -58,7 +58,6 @@
             ItemBlocks.Register();
             Recipes.Register();
             Languages.Register();
-            Models.Register();
 
         //--------------------------------------------------------------------------------------
         }
@@ -73,6 +72,7 @@
         //--------------------------------------------------------------------------------------
 
             Textures.Register();
+            Models.Register();
 
         //--------------------------------------------------------------------------------------
 

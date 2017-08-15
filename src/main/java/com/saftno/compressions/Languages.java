@@ -4,7 +4,6 @@
 
 //==============================================================================================
 
-    import com.google.common.collect.*;
     import com.saftno.compressions.Configurations.Entry;
     import com.saftno.compressions.ItemBlocks.Compressed.ItemX;
     import com.saftno.compressions.ResourcePacks.Type;
@@ -19,7 +18,11 @@
     import java.io.IOException;
     import java.nio.file.Files;
     import java.nio.file.Path;
-    import java.util.*;
+    import java.util.ArrayList;
+    import java.util.Collections;
+    import java.util.HashMap;
+    import java.util.List;
+    import java.util.Map;
     import java.util.stream.Collectors;
 
 //==============================================================================================
