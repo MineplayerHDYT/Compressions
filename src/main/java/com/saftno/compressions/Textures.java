@@ -942,7 +942,8 @@
             if( itemBlock || bed ) { try {
         //--------------------------------------------------------------------------------------
 
-                if( loc.getResourcePath().equals( "chest" ) ) {
+                if( loc.getResourcePath().equals( "chest" )
+                ||  loc.getResourcePath().equals( "trapped_chest" )  ) {
                     if( !face.equals( EnumFacing.DOWN ) &&
                         !face.equals( EnumFacing.UP ) )
                             GL11.glRotatef( 180.0F , 0.0F , 1.0F , 0.0F );
@@ -952,7 +953,8 @@
                             GL11.glRotatef( 180.0F , 0.0F , 0.0F , 1.0F );
                 }
 
-                if( loc.getResourcePath().contains( "fence" ) ) {
+                if(  loc.getResourcePath().contains( "fence" )
+                &&  !loc.getResourcePath().contains( "gate" ) ) {
                     if( !face.equals( EnumFacing.DOWN ) &&
                         !face.equals( EnumFacing.UP ) )
                             GL11.glRotatef( 90.0F , 0.0F , 1.0F , 0.0F );
@@ -1376,6 +1378,7 @@
             int cR = ( color >> 24 ) & 255;
             int cG = ( color >> 16 ) & 255;
             int cB = ( color >> 8  ) & 255;
+            int cA = ( color >> 0  ) & 255;
 
             Color.RGBtoHSB( cR , cG , cB , cHSB );
 
@@ -1411,7 +1414,7 @@
                 //if( 0.0 <= cHSB[2] && cHSB[2] <= 0.5 ) brightness = 1.0f - brightness;
                 //if( 0.5 <= cHSB[2] && cHSB[2] <= 1.0 ) brightness = brightness;
 
-                if( !item ) if( 0.0 <= cHSB[2] && cHSB[2] <= 0.30 )
+                if( !item && cA > 110 ) if( 0.0 <= cHSB[2] && cHSB[2] <= 0.4 )
                     brightness = (float) Math.sqrt( HSB[2] );
 
                 //if( 0.20 <= cHSB[2] && cHSB[2] <= 0.45 ) brightness = HSB[2] * HSB[2] *
