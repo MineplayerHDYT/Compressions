@@ -13,6 +13,9 @@
 
     import io.netty.buffer.ByteBufInputStream;
     import net.minecraft.block.Block;
+    import net.minecraft.block.BlockLever;
+    import net.minecraft.block.properties.IProperty;
+    import net.minecraft.block.properties.PropertyDirection;
     import net.minecraft.block.state.IBlockState;
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.renderer.RenderItem;
@@ -23,7 +26,10 @@
     import net.minecraft.client.renderer.texture.TextureMap;
     import net.minecraft.client.shader.Framebuffer;
     import net.minecraft.init.Blocks;
+    import net.minecraft.init.Items;
     import net.minecraft.item.Item;
+    import net.minecraft.item.ItemBed;
+    import net.minecraft.item.ItemBlock;
     import net.minecraft.item.ItemStack;
     import net.minecraft.util.EnumFacing;
     import net.minecraft.util.ResourceLocation;
@@ -42,7 +48,6 @@
     import javax.imageio.ImageIO;
     import java.awt.Color;
     import java.awt.image.BufferedImage;
-    import java.io.ByteArrayInputStream;
     import java.io.IOException;
     import java.io.InputStream;
     import java.io.OutputStream;
@@ -52,7 +57,6 @@
     import java.nio.file.Files;
     import java.nio.file.Path;
     import java.nio.file.Paths;
-    import java.util.List;
     import java.util.stream.IntStream;
 
 //==============================================================================================
@@ -426,6 +430,7 @@
         public static void Generate() {
         //--------------------------------------------------------------------------------------
 
+            // fix the chest
             boolean darken = Configurations.getSettingsDarker();
 
         //──────────────────────────────────────────────────────────────────────────────────────
@@ -433,6 +438,9 @@
         //--------------------------------------------------------------------------------------
 
                 int[] incomplete = new int[compressed.items.size()];
+                Block block = Block.getBlockFromItem( compressed.stack.getItem() );
+
+                boolean isItem = Blocks.AIR.equals( block );
 
             //----------------------------------------------------------------------------------
                 for(ItemX item: compressed.items) { for(EnumFacing face: EnumFacing.values()) {
@@ -457,8 +465,73 @@
                 for( EnumFacing face : EnumFacing.values() ) {
             //----------------------------------------------------------------------------------
 
+
                     int[][] pixels = get2DTexData( compressed.stack , face );
-                    int[][] side   = colorPixels ( averagePixel( pixels ) , wooden );
+                    //        pixels = edgePixels( averagePixel( pixels )  , pixels );
+
+                    int[][] side   = colorPixels ( averagePixel( pixels ) , wooden , isItem );
+
+                //------------------------------------------------------------------------------
+
+                    int avg1 = averagePixel( pixels );
+
+                    if( Blocks.AIR.equals( block ) || 255 != ( avg1 & 255 ) ) {
+
+                        int avg2 = averagePixel( side );
+
+                        float[] HSB1 = new float[3];
+
+                        int R = ( avg1 >> 24 ) & 255;
+                        int G = ( avg1 >> 16 ) & 255;
+                        int B = ( avg1 >> 8  ) & 255;
+
+                        Color.RGBtoHSB( R , G , B , HSB1 );
+
+                        float[] HSB2 = new float[3];
+
+                        R = ( avg2 >> 24 ) & 255;
+                        G = ( avg2 >> 16 ) & 255;
+                        B = ( avg2 >> 8  ) & 255;
+
+                        Color.RGBtoHSB( R , G , B , HSB2 );
+
+                        float diffSA = Math.abs( HSB1[1] - HSB2[1] );
+                        float diffBR = Math.abs( HSB1[2] - HSB2[2] );
+
+                        if( diffBR < 0.2 && diffSA < 0.2 ) {
+
+                            int h = 16;
+                            int w = 16;
+
+
+                            for( int y = 0; y < h; y++ ) { for( int x = 0; x < w; x++ ) {
+
+                                int pixel = pixels[y][x];
+                                int A     = pixel & 255;
+
+                                float[] HSB = new float[3];
+
+                                R = ( pixel >> 24 ) & 255;
+                                G = ( pixel >> 16 ) & 255;
+                                B = ( pixel >> 8  ) & 255;
+
+                                Color.RGBtoHSB( R , G , B , HSB );
+
+                                HSB[1] = (float) Math.sqrt( HSB[1] );
+                                HSB[2] = (float) Math.sqrt( HSB[2] );
+
+                                Color hued = new Color( Color.HSBtoRGB(HSB[0], HSB[1], HSB[2]));
+
+                                R = hued.getRed();
+                                G = hued.getGreen();
+                                B = hued.getBlue();
+
+                            //------------------------------------------------------------------
+
+                                pixels[y][x] = ( R << 24 ) | ( G << 16 ) | ( B << 8 ) | ( A );
+                            }}
+                        }
+                    }
 
                 //------------------------------------------------------------------------------
 
@@ -517,7 +590,8 @@
             int B = 0;
             int A = 0;
 
-            int count = 0;
+            int countRGB = 0;
+            int countA = 0;
 
         //--------------------------------------------------------------------------------------
             for( int y = 0; y < h; y++ ) { for( int x = 0; x < w; x++ ) {
@@ -528,21 +602,23 @@
                 int b = ( pixels[y][x] >> 8  ) & 255;
                 int a = ( pixels[y][x]       ) & 255;
 
-                R += r;
-                G += g;
-                B += b;
+
+                if( a != 0 ) R += r;
+                if( a != 0 ) G += g;
+                if( a != 0 ) B += b;
                 A += a;
 
-                count++;
+                if( a != 0 ) countRGB++;
+                countA++;
 
         //--------------------------------------------------------------------------------------
             } }
         //--------------------------------------------------------------------------------------
 
-            R = (int) ( ( R / count ) * 1.0 );
-            G = (int) ( ( G / count ) * 1.0 );
-            B = (int) ( ( B / count ) * 1.0 );
-            A = (int) ( ( A / count ) * 1.0 );
+            R = 0 != countRGB ? (int) ( ( R / countRGB ) * 1.0 ) : 0;
+            G = 0 != countRGB ? (int) ( ( G / countRGB ) * 1.0 ) : 0;
+            B = 0 != countRGB ? (int) ( ( B / countRGB ) * 1.0 ) : 0;
+            A = (int) ( ( A / countA ) * 1.0 );
 
             R = R > 255 ? 255 : R;
             G = G > 255 ? 255 : G;
@@ -853,19 +929,54 @@
 
         //--------------------------------------------------------------------------------------
 
-            Block block = Block.getBlockFromItem( stack.getItem() );
+            Boolean itemBlock = stack.getItem() instanceof ItemBlock;
+
+            //Block block = Block.getBlockFromItem( stack.getItem() );
+
+            ResourceLocation loc = stack.getItem().getRegistryName();
+
+            //boolean chest = loc.getResourcePath().equals( "chest" );
+            boolean bed   = stack.getItem() instanceof ItemBed;
 
         //--------------------------------------------------------------------------------------
-            if( net.minecraft.init.Blocks.AIR != block ) { try {
+            if( itemBlock || bed ) { try {
         //--------------------------------------------------------------------------------------
+
+                if( loc.getResourcePath().equals( "chest" ) ) {
+                    if( !face.equals( EnumFacing.DOWN ) &&
+                        !face.equals( EnumFacing.UP ) )
+                            GL11.glRotatef( 180.0F , 0.0F , 1.0F , 0.0F );
+
+                    if( face.equals( EnumFacing.DOWN ) ||
+                        face.equals( EnumFacing.UP ) )
+                            GL11.glRotatef( 180.0F , 0.0F , 0.0F , 1.0F );
+                }
+
+                if( loc.getResourcePath().contains( "fence" ) ) {
+                    if( !face.equals( EnumFacing.DOWN ) &&
+                        !face.equals( EnumFacing.UP ) )
+                            GL11.glRotatef( 90.0F , 0.0F , 1.0F , 0.0F );
+
+                    if( face.equals( EnumFacing.DOWN ) ||
+                        face.equals( EnumFacing.UP ) )
+                            GL11.glRotatef( 90.0F , 0.0F , 0.0F , 1.0F );
+                }
+
+                if( loc.getResourcePath().contains( "bed" ) ) {
+                    if( face.equals( EnumFacing.SOUTH ) ||
+                        face.equals( EnumFacing.NORTH ) )
+                        GL11.glTranslatef( 0.0F , 0.0F , -1.0F );
+                }
 
                 double[] bounds = Bounds( stack );
 
                 double height = bounds[4] - bounds[1];
+                if( height < 0 ) height = 1.0f;
 
             //----------------------------------------------------------------------------------
 
-                if( height < 0.5f && rotate ) GL11.glRotatef( 90.0F , 1.0F , 0.0F , 0.0F );
+                if( height >= 0 && height < 0.5f && rotate )
+                    GL11.glRotatef( 90.0F , 1.0F , 0.0F , 0.0F );
 
             //----------------------------------------------------------------------------------
                 if( height >= 0.5f ) {
@@ -897,16 +1008,13 @@
             } catch( NullPointerException ex ) { int s = 0; } }
         //--------------------------------------------------------------------------------------
 
-            ResourceLocation loc = stack.getItem().getRegistryName();
-
         //--------------------------------------------------------------------------------------
             if( null != loc ) {
         //--------------------------------------------------------------------------------------
 
-                boolean bed    = loc.getResourcePath().contains( "bed" );
                 boolean shield = loc.getResourcePath().contains( "shield" );
 
-                if( bed )    GL11.glRotatef( +90.0F , 0.0F , 1.0F , 0.0F );
+                //if( bed )    GL11.glRotatef( +90.0F , 0.0F , 1.0F , 0.0F );
 
                 if( shield ) GL11.glScalef( 0.6F , 0.6F , 0.6F );
                 if( shield ) GL11.glTranslatef( 0.5F , 0.5F , 1.0F );
@@ -1247,7 +1355,13 @@
         //--------------------------------------------------------------------------------------
         }
 
-        public static int[][] colorPixels ( int color     , int[][] pixels ) {
+        public static int[][] colorPixels ( int color     , int[][] pixels, boolean item ) {
+        //--------------------------------------------------------------------------------------
+
+            float hue = ( getPixelHue( color ) ) * 1.0f / 360;
+
+            int average = averagePixel( pixels );
+
         //--------------------------------------------------------------------------------------
 
             int h = 16;
@@ -1265,6 +1379,14 @@
 
             Color.RGBtoHSB( cR , cG , cB , cHSB );
 
+            float[] aHSB = new float[3];
+
+            int aR = ( average >> 24 ) & 255;
+            int aG = ( average >> 16 ) & 255;
+            int aB = ( average >> 8  ) & 255;
+
+            Color.RGBtoHSB( aR , aG , aB , aHSB );
+
         //--------------------------------------------------------------------------------------
             for( int y = 0; y < h; y++ ) { for( int x = 0; x < w; x++ ) {
         //--------------------------------------------------------------------------------------
@@ -1280,8 +1402,22 @@
 
             //----------------------------------------------------------------------------------
 
-                float hue        = getPixelHue( color ) * 1.0f / 360;
                 float brightness = HSB[2] * HSB[2];
+                //float brightness = HSB[2] / cHSB[2];
+
+                //if( Math.abs( HSB[2] * HSB[2] - cHSB[2] ) < 0.25 )
+                //    brightness = 1.0f - brightness;
+
+                //if( 0.0 <= cHSB[2] && cHSB[2] <= 0.5 ) brightness = 1.0f - brightness;
+                //if( 0.5 <= cHSB[2] && cHSB[2] <= 1.0 ) brightness = brightness;
+
+                if( !item ) if( 0.0 <= cHSB[2] && cHSB[2] <= 0.30 )
+                    brightness = (float) Math.sqrt( HSB[2] );
+
+                //if( 0.20 <= cHSB[2] && cHSB[2] <= 0.45 ) brightness = HSB[2] * HSB[2] *
+                // HSB[2];
+                //if( 0.45 <= cHSB[2] && cHSB[2] <= 0.75 ) brightness = HSB[2] * HSB[2];
+                //if( 0.75 <= cHSB[2] && cHSB[2] <= 1.0 ) brightness = HSB[2];
 
                 Color hued = new Color( Color.HSBtoRGB( hue , cHSB[1] , brightness ) );
 
@@ -1300,6 +1436,72 @@
         //--------------------------------------------------------------------------------------
 
             return joined;
+
+        //--------------------------------------------------------------------------------------
+        }
+
+        public static int[][] edgePixels  ( int color     , int[][] pixels ) {
+        //--------------------------------------------------------------------------------------
+
+            float[] HSB = new float[3];
+
+            int R = ( color >> 24 ) & 255;
+            int G = ( color >> 16 ) & 255;
+            int B = ( color >> 8  ) & 255;
+            int A = ( color       ) & 255;
+
+            Color.RGBtoHSB( R , G , B , HSB );
+
+        //--------------------------------------------------------------------------------------
+
+            HSB[2] = ( HSB[2] + 0.35f ) > 1.0f ? 1.0f : HSB[2] + 0.35f;
+            HSB[2] = 1.0f;
+            A = 125;
+
+            Color brightened = new Color( Color.HSBtoRGB( HSB[0] , HSB[1] , HSB[2] ) );
+
+        //--------------------------------------------------------------------------------------
+
+            R = brightened.getRed();
+            G = brightened.getGreen();
+            B = brightened.getBlue();
+
+            color = ( R << 24 ) | ( G << 16 ) | ( B << 8 ) | ( A );
+
+        //--------------------------------------------------------------------------------------
+
+            int h = 16;
+            int w = 16;
+
+            int[][] edged = new int[h][w];
+
+        //--------------------------------------------------------------------------------------
+            for( int y = 0; y < h; y++ ) { for( int x = 0; x < w; x++ ) {
+        //--------------------------------------------------------------------------------------
+
+                edged[y][x] = pixels[y][x];
+
+            //----------------------------------------------------------------------------------
+
+                if( 0 == ( pixels[y][x] & 255 ) ) continue;
+
+            //----------------------------------------------------------------------------------
+                found : for( int i = -1; i <= 1; i++ ) { for( int j = -1; j <= 1; j++ ) {
+            //----------------------------------------------------------------------------------
+
+                    if( y + i < 0 || y + i >= h ) continue;
+                    if( x + j < 0 || x + j >= w ) continue;
+
+                //------------------------------------------------------------------------------
+
+                    if( 0 == ( pixels[y + i][x + j] & 255 ) ) edged[y][x] = color;
+                    if( 0 == ( pixels[y + i][x + j] & 255 ) ) break found;
+
+        //--------------------------------------------------------------------------------------
+            } } } }
+        //--------------------------------------------------------------------------------------
+
+            return edged;
 
         //--------------------------------------------------------------------------------------
         }
