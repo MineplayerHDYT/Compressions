@@ -7,14 +7,23 @@ buildscript {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
     }
 }
-
 apply plugin: 'net.minecraftforge.gradle.forge'
 //Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 
 
-version = "[2.0.4]"
-group = "com.saftno.compressions" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "Compressions-[1.12.1]"
+version = "[3.0.0]"
+group = "com.saftno.compressions" // http://maven.apache
+// .org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "Compressions [1.12.1]"
+
+sourceSets.main {
+    java {
+        srcDirs project.projectDir.getPath() + '/src'
+    }
+    resources {
+        srcDirs project.projectDir.getPath() + '/res'
+    }
+}
 
 sourceCompatibility = targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 compileJava {
@@ -22,7 +31,7 @@ compileJava {
 }
 
 minecraft {
-    version = "1.12.1-14.22.0.2452"
+    version = "1.12.1-14.22.0.2456"
     runDir = "run"
     
     // the mappings can be changed at any time, and must be in the following format.
@@ -35,7 +44,6 @@ minecraft {
 }
 
 dependencies {
-    // com/esotericsoftware/yamlbeans/yamlbeans
     // you may put jars on which you depend on in ./libs
     // or you may define them like so..
     //compile "some.group:artifact:version:classifier"
