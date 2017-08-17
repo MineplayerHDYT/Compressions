@@ -33,7 +33,7 @@
 
         public static final String modId   = "compressions";
         public static final String name    = "Compressions";
-        public static final String version = "2.0.2";
+        public static final String version = "2.0.3";
 
     //==========================================================================================
         @Mod.Instance( modId )
@@ -77,8 +77,6 @@
         //--------------------------------------------------------------------------------------
 
             ResourcePacks.Register();
-
-            Textures.saveAllToFile();
 
         //--------------------------------------------------------------------------------------
             once = true;
