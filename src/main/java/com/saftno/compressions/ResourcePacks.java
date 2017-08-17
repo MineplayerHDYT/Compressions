@@ -247,23 +247,24 @@
 
         //----------------------------------------------------------------------
 
-            Entry   pack   = on.isEmpty() ? all.get( 0 ) : on.get( 0 );
-            Boolean active = on.contains( pack );
+            Entry       pack     = on.isEmpty() ? all.get( 0 ) : on.get( 0 );
+            List<Entry> previous = new ArrayList<>( repo.getRepositoryEntries() );
+            Boolean     active   = previous.contains( pack );
 
-            if(  empty &&  active ) on.remove( pack );
-            if( !empty && !active ) on.add( pack );
+            if(  empty &&  active ) previous.remove( pack );
+            if( !empty && !active ) previous.add( pack );
 
         //----------------------------------------------------------------------
             String tmpName = Base.root + "/resourcepacks/" + Base.name + ".zip";
         //----------------------------------------------------------------------
 
-            if( empty ) FileUtils.deleteQuietly( Paths.get(tmpName).toFile() );
+            if( empty ) FileUtils.deleteQuietly( Paths.get( tmpName ).toFile() );
 
         //----------------------------------------------------------------------
             if( empty && !active ) return;
         //----------------------------------------------------------------------
 
-            repo.setRepositories( on );
+            repo.setRepositories( previous );
             repo.updateRepositoryEntriesAll();
 
             Minecraft.getMinecraft().refreshResources();
