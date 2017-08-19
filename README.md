@@ -1,2 +1,2 @@
 # Compressions
-A minecraft mod that adds compressed blocks of anything.
+A [minecraft mod](https://minecraft.curseforge.com/projects/compressions) that adds compressed blocks of anything.
