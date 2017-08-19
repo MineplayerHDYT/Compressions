@@ -32,6 +32,7 @@
     import net.minecraftforge.common.model.IModelState;
     import net.minecraftforge.common.model.TRSRTransformation;
     import net.minecraftforge.common.property.IExtendedBlockState;
+    import net.minecraftforge.common.property.IUnlistedProperty;
     import net.minecraftforge.fml.common.Mod;
     import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -181,7 +182,22 @@
 
             org.lwjgl.input.Mouse.setGrabbed(false);
 
-            //IExtendedBlockState exstate = (IBlockState)
+            if( state instanceof IExtendedBlockState ) {
+
+                IExtendedBlockState exstate = (IExtendedBlockState) state;
+                Integer posx = null;
+                Integer posy = null;
+                Integer posz = null;
+
+                for( IUnlistedProperty prop : exstate.getUnlistedNames() ) {
+                    if( prop.getName().equals( "PosX") ) posx = (Integer) exstate.getValue( prop );
+                    if( prop.getName().equals( "PosY") ) posy = (Integer) exstate.getValue( prop );
+                    if( prop.getName().equals( "PosZ") ) posz = (Integer) exstate.getValue( prop );
+                }
+
+                int h = 0;
+            }
+
 
 
             Item gravel = Item.getItemFromBlock( Blocks.GRAVEL );
