@@ -1,0 +1,5 @@
+{ "forge_marker" : 1
+, "defaults" : { "model"     : "cube_all"
+               , "textures"  : { "all" : "compressions:blocks/mainblock" } }
+, "variants" : { "normal"    : [ { } ]
+               , "inventory" : [ { } ] } }
