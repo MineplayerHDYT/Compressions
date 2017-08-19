@@ -6,15 +6,9 @@
 
     import com.google.gson.JsonObject;
     import com.google.gson.JsonParser;
-    import net.minecraft.enchantment.Enchantment;
     import net.minecraft.nbt.JsonToNBT;
     import net.minecraft.nbt.NBTException;
-    import net.minecraft.potion.PotionEffect;
-    import net.minecraft.potion.PotionType;
-    import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.common.config.Configuration;
-    import net.minecraftforge.fml.common.registry.EntityEntry;
-    import net.minecraftforge.fml.common.registry.ForgeRegistries;
     import org.apache.commons.io.FileUtils;
     import org.apache.commons.lang3.StringUtils;
 
@@ -32,10 +26,14 @@
     public class Configurations {
 
     //==============================================================================================
-        public static String root = Base.root + "/config/compressions/";
+    // Structure
     //==============================================================================================
 
-        public static String Entries  = "entries.yaml";
+        public static String root = Base.root + "/config/compressions/";
+
+    //==============================================================================================
+
+        public static String Entries  = "entries.cfg";
         public static String Settings = "settings.cfg";
 
     //==============================================================================================
@@ -93,11 +91,8 @@
             @Override public int hashCode() {
             //--------------------------------------------------------------------------------------
 
-                return  Width.hashCode() ^ Height.hashCode() ^
-                        ( null == Mod    ? "".hashCode() : Mod.hashCode()   ) ^
-                        ( null == Entry  ? "".hashCode() : Entry.hashCode() ) ^
-                        ( null == Meta   ? "".hashCode() : Meta.hashCode()  ) ^
-                        ( null == NBT    ? "".hashCode() : NBT.hashCode()   ) ;
+                return  Base.Hash( Width ) ^ Base.Hash( Height ) ^ Base.Hash( Mod ) ^
+                        Base.Hash( Entry ) ^ Base.Hash(  Meta  ) ^ Base.Hash( NBT ) ;
 
             //--------------------------------------------------------------------------------------
             }
@@ -150,86 +145,10 @@
             } catch ( NBTException ex ) { ex.printStackTrace(); } }
 
         //==========================================================================================
-
-            public String NBTAsExtraDescription() {
-            //--------------------------------------------------------------------------------------
-
-                if(      null == NBT      ) return "";
-                if( !NBT.contains( "\"" ) ) return "";
-
-            //--------------------------------------------------------------------------------------
-                NBT = NBT.split( "\"" )[1];
-            //--------------------------------------------------------------------------------------
-
-                if( !NBT.contains( ":" ) ) return " (" + StringUtils.capitalize( NBT ) + ")";
-
-            //--------------------------------------------------------------------------------------
-                ResourceLocation id = new ResourceLocation( StringUtils.trim( NBT ) );
-            //--------------------------------------------------------------------------------------
-
-                EntityEntry entity      = ForgeRegistries.ENTITIES.getValue( id );
-                Enchantment enchantment = ForgeRegistries.ENCHANTMENTS.getValue( id );
-                PotionType potiontype  = ForgeRegistries.POTION_TYPES.getValue( id );
-
-            //--------------------------------------------------------------------------------------
-
-                if( null !=   entity    ) return "";
-                if( null != enchantment ) return " " + enchantment.getTranslatedName( 0 );
-
-            //--------------------------------------------------------------------------------------
-                if( !potiontype.getRegistryName().getResourcePath().equals( "empty" ) ) {
-            //--------------------------------------------------------------------------------------
-
-                    if( 0 == potiontype.getEffects().size() ) return "";
-
-                //----------------------------------------------------------------------------------
-
-                    PotionEffect effect = potiontype.getEffects().get( 0 );
-
-                    Integer sec = ( effect.getDuration() / 20 ) % 60;
-                    Integer min = ( effect.getDuration() / 20 ) / 60;
-                    Integer amp = effect.getAmplifier();
-
-                    String secS = ( sec < 10 ? "0" : "" ) + sec;
-                    String ampS = ( amp == 0 ) ? "" : ( " x" + ( 1 + amp ) ) ;
-
-                    return " ( " + min + ":" + secS + " )" + ampS;
-
-            //--------------------------------------------------------------------------------------
-                } return "";
-            //--------------------------------------------------------------------------------------
-            }
-
-        //==========================================================================================
         // Usage
         //==========================================================================================
 
             public Entry() {}
-
-        //==========================================================================================
-
-            public Entry( String content ) { this.Parse( content ); }
-
-        //==========================================================================================
-
-            public Entry( Entry def , String content ) {
-                //----------------------------------------------------------------------------------
-
-                this.Width  = def.Width;
-                this.Height = def.Height;
-                this.Mod    = def.Mod;
-                this.Entry  = def.Entry;
-                this.Meta   = def.Meta;
-                this.NBT    = def.NBT;
-
-                //----------------------------------------------------------------------------------
-
-                this.Parse( content );
-
-                //----------------------------------------------------------------------------------
-            }
-
-        //==========================================================================================
 
             public Entry( Entry other ) {
             //--------------------------------------------------------------------------------------
@@ -246,8 +165,15 @@
 
         //==========================================================================================
 
+            public Entry( String content             ) {              this.Parse( content ); }
+            public Entry( String content , Entry def ) { this( def ); this.Parse( content ); }
+
+        //==========================================================================================
+
         }
 
+    //==============================================================================================
+    // Setup
     //==============================================================================================
 
         static /* Set up the config files */ { init: try {
@@ -260,6 +186,8 @@
         //------------------------------------------------------------------------------------------
         } catch( IOException ex ) { ex.printStackTrace(); } }
 
+    //==============================================================================================
+    // Usage
     //==============================================================================================
 
         public static List<Entry> getEntries() { try {
@@ -317,7 +245,7 @@
 
                 //----------------------------------------------------------------------------------
 
-                    entries.add( new Entry( def , subsection ) );
+                    entries.add( new Entry(subsection, def) );
 
         //------------------------------------------------------------------------------------------
             } } return entries;

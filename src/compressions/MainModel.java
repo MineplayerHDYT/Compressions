@@ -64,8 +64,12 @@
     @Mod.EventBusSubscriber
 //==================================================================================================
 
-    public class MainModel implements ICustomModelLoader, IModel , IBakedModel
-        /* implements ICustomModelLoader, IModel, IBakedModel */ {
+    public class MainModel implements ICustomModelLoader, IModel , IBakedModel {
+    //==============================================================================================
+
+
+
+
     //==============================================================================================
 
         public static MainModel INSTANCE = new MainModel( null , null , null );
@@ -391,6 +395,11 @@
         public Pair<? extends IBakedModel,Matrix4f> handlePerspective(
                 ItemStack stack ,
                 TransformType type) {
+
+            Item gravel = Item.getItemFromBlock( Blocks.GRAVEL );
+
+            stack = null == stack ? new ItemStack( gravel , 1 , 0 ) : stack;
+
             IBakedModel model = Minecraft.getMinecraft()
                     .getRenderItem()
                     .getItemModelMesher()
@@ -449,7 +458,7 @@
         //------------------------------------------------------------------------------------------
 
             ResourceLocation itemRL  = MainItem.instance.getRegistryName();
-            ResourceLocation blockRL = MainBlock.instance.getRegistryName();
+            ResourceLocation blockRL = MainBlock.controlCMP.getRegistryName();
 
             ModelResourceLocation itemMRL  = new ModelResourceLocation( itemRL  , "inventory" );
             ModelResourceLocation blockMRL = new ModelResourceLocation( blockRL , "inventory" );
