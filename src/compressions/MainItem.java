@@ -8,16 +8,25 @@
 
 //==================================================================================================
 
+    import net.minecraft.advancements.CriteriaTriggers;
+    import net.minecraft.block.state.IBlockState;
     import net.minecraft.creativetab.CreativeTabs;
+    import net.minecraft.entity.player.EntityPlayer;
+    import net.minecraft.entity.player.EntityPlayerMP;
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemBlock;
     import net.minecraft.item.ItemStack;
     import net.minecraft.nbt.NBTTagCompound;
+    import net.minecraft.util.EnumFacing;
     import net.minecraft.util.NonNullList;
+    import net.minecraft.util.math.BlockPos;
+    import net.minecraft.world.World;
     import net.minecraftforge.event.RegistryEvent.Register;
     import net.minecraftforge.fml.common.Mod;
     import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import net.minecraftforge.fml.common.registry.ForgeRegistries;
+    import org.apache.commons.lang3.tuple.ImmutablePair;
+    import org.apache.commons.lang3.tuple.Pair;
 
     import java.util.*;
 
@@ -32,6 +41,81 @@
         public static MainItem instance = new MainItem();
 
         public static  Map<Entry , ItemStack> entries = new HashMap<>();
+
+    //==============================================================================================
+
+        public static class Position {
+
+        //==========================================================================================
+        // Structure
+        //==========================================================================================
+
+            Long x;
+            Long y;
+            Long z;
+
+        //==========================================================================================
+        // Unique Identification
+        //==========================================================================================
+
+            @Override public boolean equals( Object object ) {
+                //--------------------------------------------------------------------------------------
+                if( !( object instanceof Position ) ) return false;
+                //--------------------------------------------------------------------------------------
+
+                Position other = (Position) object;
+
+                //--------------------------------------------------------------------------------------
+
+                if( !this.x.equals( other.x ) ) return false;
+                if( !this.y.equals( other.y ) ) return false;
+                if( !this.z.equals( other.z ) ) return false;
+
+                //--------------------------------------------------------------------------------------
+                return true;
+                //--------------------------------------------------------------------------------------
+            }
+
+            @Override public int hashCode() {
+                //--------------------------------------------------------------------------------------
+
+                Long hash = Base.Hash( this.x ) ^ Base.Hash( this.y ) ^ Base.Hash( this.z );
+                hash = ( hash >> 32 ) ^ ( hash & 0xFFFFFFFFL );
+
+                //--------------------------------------------------------------------------------------
+                return hash.intValue();
+                //--------------------------------------------------------------------------------------
+            }
+
+        //==========================================================================================
+        // Usage
+        //==========================================================================================
+
+            Position( BlockPos pos ) {
+                //--------------------------------------------------------------------------------------
+
+                this.x = ( (long) pos.getX() );
+                this.y = ( (long) pos.getY() );
+                this.z = ( (long) pos.getZ() );
+
+                //--------------------------------------------------------------------------------------
+            }
+
+            Position( int x , int y , int z ) {
+            //--------------------------------------------------------------------------------------
+
+                this.x = (long) x;
+                this.y = (long) y;
+                this.z = (long) z;
+
+            //--------------------------------------------------------------------------------------
+            }
+
+        //==========================================================================================
+
+        }
+
+        public static Map<Position , Pair<World , ItemStack>> placed = new HashMap<>();
 
     //==============================================================================================
 
@@ -145,6 +229,25 @@
         //------------------------------------------------------------------------------------------
         }
 
+        @Override public boolean placeBlockAt( ItemStack stack,
+                                     EntityPlayer player,
+                                     World world,
+                                     BlockPos pos,
+                                     EnumFacing side,
+                                     float hitX,
+                                     float hitY,
+                                     float hitZ,
+                                     IBlockState newState ) {
+        //------------------------------------------------------------------------------------------
+
+            if( world.isRemote ) return false;
+
+            placed.put( new Position( pos ) , new ImmutablePair<>( world , stack ) );
+
+            return super.placeBlockAt(stack, player, world, pos, side, hitX, hitY, hitZ, newState);
+
+        //------------------------------------------------------------------------------------------
+        }
     //==============================================================================================
 
     }

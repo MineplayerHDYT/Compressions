@@ -4,6 +4,12 @@
 
 //==================================================================================================
 
+    import com.google.gson.JsonObject;
+    import com.google.gson.JsonParser;
+    import compressions.MainItem.Position;
+
+//==================================================================================================
+
     import net.minecraft.block.Block;
     import net.minecraft.block.BlockGravel;
     import net.minecraft.block.state.IBlockState;
@@ -20,10 +26,12 @@
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemBlock;
     import net.minecraft.item.ItemStack;
+    import net.minecraft.nbt.JsonToNBT;
     import net.minecraft.nbt.NBTTagCompound;
     import net.minecraft.util.EnumFacing;
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
+    import net.minecraft.util.math.BlockPos;
     import net.minecraft.world.World;
     import net.minecraftforge.client.ForgeHooksClient;
     import net.minecraftforge.client.event.ModelBakeEvent;
@@ -125,9 +133,6 @@
             @Override
             public IBakedModel handleItemState(IBakedModel originalModel, ItemStack stack, World world, EntityLivingBase entity)
             {
-
-                org.lwjgl.input.Mouse.setGrabbed(false);
-
                 return new MainModel( stack , world , entity );
             }
         }
@@ -180,11 +185,16 @@
                                                    @Nullable EnumFacing side   ,
                                                              long rand         ) {
 
-            org.lwjgl.input.Mouse.setGrabbed(false);
+            //org.lwjgl.input.Mouse.setGrabbed(false);
+
+            Item gravel = Item.getItemFromBlock( Blocks.GRAVEL );
+
+            ItemStack stack = null == this.stack ? new ItemStack( gravel , 1 , 0 ) : this.stack;
 
             if( state instanceof IExtendedBlockState ) {
 
                 IExtendedBlockState exstate = (IExtendedBlockState) state;
+
                 Integer posx = null;
                 Integer posy = null;
                 Integer posz = null;
@@ -195,16 +205,57 @@
                     if( prop.getName().equals( "PosZ") ) posz = (Integer) exstate.getValue( prop );
                 }
 
+                BlockPos pos      = new BlockPos( posx , posy, posz );
+                Position position = new Position( posx , posy , posz);
+
+                if( MainItem.placed.containsKey( position ) )
+                    if( MainItem.placed.get( position ).getLeft().isAirBlock( pos ) )
+                        MainItem.placed.remove( position );
+
+                ItemStack newStack = MainItem.placed.getOrDefault( position , new ImmutablePair<>
+                        (null , null) ).getRight();
+
+                if( null != newStack ) {
+
+                    NBTTagCompound tag = newStack.getTagCompound();
+                    String  mod   = tag.getString( "Mod" );
+                    String  entry = tag.getString( "Entry" );
+                    Integer meta  = tag.getInteger( "Meta" );
+                    String  nbt   = tag.getString( "NBT" );
+
+                    List<Item> items = new ArrayList<>( ForgeRegistries.ITEMS.getValues() );
+
+                    items.removeIf( s -> !s.getRegistryName().getResourceDomain().equals( mod ) );
+                    items.removeIf( s -> !s.getRegistryName().getResourcePath  ().equals( entry ) );
+
+                    for( Item item : items ) {
+
+                        CreativeTabs tab = item.getCreativeTab();
+                        if( null == tab ) tab = CreativeTabs.CREATIVE_TAB_ARRAY[0];
+
+                        //----------------------------------------------------------------------------------
+
+                        NonNullList<ItemStack> stacks = NonNullList.create();
+                        item.getSubItems( tab , stacks );
+
+                        stacks.removeIf( s -> !meta.equals( s.getMetadata() ) );
+
+                        if( !nbt.isEmpty() ) stacks.removeIf( s -> !s.hasTagCompound() );
+                        if( !nbt.isEmpty() )
+                            stacks.removeIf( s -> !s.getTagCompound().toString()
+                                    .replace( " " , "" ).toLowerCase()
+                                    .equals( nbt.replace( " " , "" )
+                                            .toLowerCase() ) );
+
+                        if( 1 == stacks.size() ) stack = stacks.get( 0 );
+                    }
+                }
+
                 int h = 0;
             }
 
-
-
-            Item gravel = Item.getItemFromBlock( Blocks.GRAVEL );
-
-            ItemStack stack = null == this.stack ? new ItemStack( gravel , 1 , 0 ) : this.stack;
-
-            Pair<? extends IBakedModel,Matrix4f> tr = handlePerspective( TransformType.GUI );
+            Pair<? extends IBakedModel,Matrix4f> tr = this.handlePerspective(  stack , TransformType
+                    .GUI );
 
             ForgeHooksClient.multiplyCurrentGlMatrix( tr.getRight() );
 
@@ -334,10 +385,12 @@
 
         @Override public Pair<? extends IBakedModel,Matrix4f> handlePerspective(TransformType type){
 
-            Item gravel = Item.getItemFromBlock( Blocks.GRAVEL );
+            return this.handlePerspective( this.stack , type );
+        }
 
-            ItemStack stack = null == this.stack ? new ItemStack( gravel , 1 , 0 ) : this.stack;
-
+        public Pair<? extends IBakedModel,Matrix4f> handlePerspective(
+                ItemStack stack ,
+                TransformType type) {
             IBakedModel model = Minecraft.getMinecraft()
                     .getRenderItem()
                     .getItemModelMesher()
