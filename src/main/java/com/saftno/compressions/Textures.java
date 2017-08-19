@@ -79,6 +79,8 @@
 
     //==========================================================================================
 
+        public static int endW = 0;
+        public static int endH = 0;
         public static IntBuffer ForgeEndScreen;
 
     //==========================================================================================
@@ -402,17 +404,17 @@
             if( null != ForgeEndScreen) return;
         //--------------------------------------------------------------------------------------
 
-            int w = Minecraft.getMinecraft().displayWidth;
-            int h = Minecraft.getMinecraft().displayHeight;
+            endW = Minecraft.getMinecraft().displayWidth;
+            endH = Minecraft.getMinecraft().displayHeight;
 
-            ForgeEndScreen = BufferUtils.createIntBuffer( w * h );
+            ForgeEndScreen = BufferUtils.createIntBuffer( endW * endH );
 
         //--------------------------------------------------------------------------------------
 
             int format = GL11.GL_RGBA;
             int type   = GL11.GL_UNSIGNED_BYTE;
 
-            GL11.glReadPixels( 0 , 0 , w , h , format , type , ForgeEndScreen );
+            GL11.glReadPixels( 0 , 0 , endW , endH , format , type , ForgeEndScreen );
 
         //--------------------------------------------------------------------------------------
         }
@@ -1082,13 +1084,10 @@
         // Capturing frames in the framebuffer causes black frames to show
         //--------------------------------------------------------------------------------------
 
-            w = Minecraft.getMinecraft().displayWidth;
-            h = Minecraft.getMinecraft().displayHeight;
-
             int format = GL11.GL_RGBA;
             int type   = GL11.GL_UNSIGNED_BYTE;
 
-            GL11.glDrawPixels( w , h , format , type , ForgeEndScreen );
+            GL11.glDrawPixels( endW , endH , format , type , ForgeEndScreen );
 
             Minecraft.getMinecraft().updateDisplay();
 
