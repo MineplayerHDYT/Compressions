@@ -1087,7 +1087,7 @@
             int format = GL11.GL_RGBA;
             int type   = GL11.GL_UNSIGNED_BYTE;
 
-            GL11.glDrawPixels( endW , endH , format , type , ForgeEndScreen );
+            GL11.glDrawPixels( endW , endH , format  , type , ForgeEndScreen );
 
             Minecraft.getMinecraft().updateDisplay();
 
