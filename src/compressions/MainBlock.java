@@ -29,6 +29,7 @@
     // Structure
     //==============================================================================================
 
+
         public static class Compressed extends Block {
 
         //==========================================================================================
@@ -125,10 +126,9 @@
 
         }
 
+
     //==============================================================================================
-
-        public static final Compressed controlCMP = new Compressed( Material.WOOD , "compressed" );
-
+        public static Compressed controlCMP = new Compressed( Material.WOOD , "compressed" );
     //==============================================================================================
     // Setup
     //==============================================================================================
@@ -136,7 +136,7 @@
         @SubscribeEvent public static void Register( Register<Block> event ) {
         //------------------------------------------------------------------------------------------
 
-            event.getRegistry().register( MainBlock. controlCMP );
+            event.getRegistry().register( MainBlock.controlCMP );
 
         //------------------------------------------------------------------------------------------
         }

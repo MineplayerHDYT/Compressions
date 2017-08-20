@@ -4,11 +4,19 @@
 
 //==================================================================================================
 
+    import com.google.gson.Gson;
+    import com.google.gson.JsonElement;
     import com.google.gson.JsonObject;
     import com.google.gson.JsonParser;
+    import net.minecraft.creativetab.CreativeTabs;
+    import net.minecraft.item.Item;
+    import net.minecraft.item.ItemStack;
     import net.minecraft.nbt.JsonToNBT;
     import net.minecraft.nbt.NBTException;
+    import net.minecraft.nbt.NBTTagCompound;
+    import net.minecraft.util.NonNullList;
     import net.minecraftforge.common.config.Configuration;
+    import net.minecraftforge.fml.common.registry.ForgeRegistries;
     import org.apache.commons.io.FileUtils;
     import org.apache.commons.lang3.StringUtils;
 
@@ -16,10 +24,10 @@
 
     import java.io.File;
     import java.io.IOException;
+    import java.nio.charset.Charset;
     import java.nio.file.Files;
     import java.nio.file.Paths;
-    import java.util.ArrayList;
-    import java.util.List;
+    import java.util.*;
 
 //==================================================================================================
 
@@ -38,139 +46,7 @@
 
     //==============================================================================================
 
-        public static class Entry {
-
-        //==========================================================================================
-        // Structure
-        //==========================================================================================
-
-            Integer Width  = 9;
-            Integer Height = 3;
-            String  Mod    = null;
-            String  Entry  = null;
-            Integer Meta   = null;
-            String  NBT    = null;
-
-        //==========================================================================================
-        // Unique identification
-        //==========================================================================================
-
-            @Override public boolean equals( Object object ) {
-            //--------------------------------------------------------------------------------------
-                if( !( object instanceof Entry ) ) return false;
-            //--------------------------------------------------------------------------------------
-
-                Entry other = (Entry) object;
-
-            //--------------------------------------------------------------------------------------
-
-                if( !this.Width.equals ( other.Width  ) ) return false;
-                if( !this.Height.equals( other.Height ) ) return false;
-
-                if( null == this.Mod && null != other.Mod ) return false;
-                if( null != this.Mod && null == other.Mod ) return false;
-                if( null != this.Mod && !this.Mod.equals( other.Mod ) ) return false;
-
-                if( null == this.Entry && null != other.Entry ) return false;
-                if( null != this.Entry && null == other.Entry ) return false;
-                if( null != this.Entry && !this.Entry.equals( other.Entry ) ) return false;
-
-                if( null == this.Meta && null != other.Meta ) return false;
-                if( null != this.Meta && null == other.Meta ) return false;
-                if( null != this.Meta && !this.Meta.equals( other.Meta ) ) return false;
-
-                if( null == this.NBT && null != other.NBT ) return false;
-                if( null != this.NBT && null == other.NBT ) return false;
-                if( null != this.NBT && !this.NBT.equals( other.NBT ) ) return false;
-
-            //--------------------------------------------------------------------------------------
-                return true;
-            //--------------------------------------------------------------------------------------
-            }
-
-            @Override public int hashCode() {
-            //--------------------------------------------------------------------------------------
-
-                return  Base.Hash( Width ) ^ Base.Hash( Height ) ^ Base.Hash( Mod ) ^
-                        Base.Hash( Entry ) ^ Base.Hash(  Meta  ) ^ Base.Hash( NBT ) ;
-
-            //--------------------------------------------------------------------------------------
-            }
-
-        //==========================================================================================
-        // Helpers
-        //==========================================================================================
-
-            public void Parse( String content ) { try {
-            //--------------------------------------------------------------------------------------
-
-                content = StringUtils.trim( content );
-
-                content = content.replaceAll( ":$"  , ""  );
-                content = content.replaceAll( "="   , ":" );
-                content = content.replaceAll( "^\\[" , "{" );
-                content = content.replaceAll( "]$"  , "}" );
-
-            //--------------------------------------------------------------------------------------
-
-                content = StringUtils.trim( content );
-
-                if( !content.startsWith( "{" ) ) content = "{" + content + "}";
-
-                content = content.replaceAll( "\n\\s*(\\w)" , ",$1" );
-
-            //--------------------------------------------------------------------------------------
-
-                JsonObject in = new JsonParser().parse( content ).getAsJsonObject();
-
-            //--------------------------------------------------------------------------------------
-
-                Boolean width  = in.has( "Width"  );
-                Boolean height = in.has( "Height" );
-                Boolean mod    = in.has( "Mod"    );
-                Boolean entry  = in.has( "Entry"  );
-                Boolean meta   = in.has( "Meta"   );
-                Boolean nbt    = in.has( "NBT"    );
-
-            //--------------------------------------------------------------------------------------
-
-                if( width  ) Width  = Integer.parseInt( in.get( "Width"  ).getAsString() );
-                if( height ) Height = Integer.parseInt( in.get( "Height" ).getAsString() );
-                if( meta   ) Meta   = Integer.parseInt( in.get( "Meta"   ).getAsString() );
-                if( mod    ) Mod    = in.get( "Mod"   ).getAsString();
-                if( entry  ) Entry  = in.get( "Entry" ).getAsString();
-                if( nbt    ) NBT    = JsonToNBT.getTagFromJson( "" + in.get( "NBT") ).toString();
-
-            //--------------------------------------------------------------------------------------
-            } catch ( NBTException ex ) { ex.printStackTrace(); } }
-
-        //==========================================================================================
-        // Usage
-        //==========================================================================================
-
-            public Entry() {}
-
-            public Entry( Entry other ) {
-            //--------------------------------------------------------------------------------------
-
-                this.Width  = other.Width;
-                this.Height = other.Height;
-                this.Mod    = other.Mod;
-                this.Entry  = other.Entry;
-                this.Meta   = other.Meta;
-                this.NBT    = other.NBT;
-
-            //--------------------------------------------------------------------------------------
-            }
-
-        //==========================================================================================
-
-            public Entry( String content             ) {              this.Parse( content ); }
-            public Entry( String content , Entry def ) { this( def ); this.Parse( content ); }
-
-        //==========================================================================================
-
-        }
+        public static List<ItemStack> entries = new ArrayList<>();
 
     //==============================================================================================
     // Setup
@@ -186,17 +62,21 @@
         //------------------------------------------------------------------------------------------
         } catch( IOException ex ) { ex.printStackTrace(); } }
 
-    //==============================================================================================
-    // Usage
-    //==============================================================================================
+        static /* Load the entries */  { try {
+        //──────────────────────────────────────────────────────────────────────────────────────────
+        // First we get the item groups from the file
+        //──────────────────────────────────────────────────────────────────────────────────────────
 
-        public static List<Entry> getEntries() { try {
-        //------------------------------------------------------------------------------------------
-            List<Entry> entries = new ArrayList<>();
+            final String div = "parsilibnappredi";
+
         //------------------------------------------------------------------------------------------
 
-            String[] lines = FileUtils.readFileToString( new File( root + Entries ) , "utf8" )
-                                      .split( "\n" );
+            List<String> groups = new ArrayList<>();
+
+        //------------------------------------------------------------------------------------------
+
+            File     file  = new File( root + Entries );
+            String[] lines = FileUtils.readFileToString( file , "utf8" ).split( "\n" );
 
             for( int i = 0; i < lines.length; i++ ) lines[i] = ( " " + lines[i] ).split( "#" )[0];
 
@@ -223,7 +103,9 @@
 
                 Boolean noEntries = section.startsWith( "[" ) && section.endsWith( "]" );
 
-                if( noEntries ) entries.add( new Entry( section ) );
+                if( noEntries ) groups.add( section.replaceAll( "="   , ":" )
+                        .replaceAll( "\\[" , "{" )
+                        .replaceAll( "]"   , "}" ) );
                 if( noEntries ) continue;
 
             //--------------------------------------------------------------------------------------
@@ -234,10 +116,6 @@
                 String body   = "\n-" + StringUtils.trim( (section + "\n").split("\n-", 2)[1] );
 
             //--------------------------------------------------------------------------------------
-
-                Entry def = new Entry( header );
-
-            //--------------------------------------------------------------------------------------
                 for( String subsection : body.split( "\n-" ) ) {
             //--------------------------------------------------------------------------------------
 
@@ -245,13 +123,158 @@
 
                 //----------------------------------------------------------------------------------
 
-                    entries.add( new Entry(subsection, def) );
+                    groups.add( header.replaceAll( "]:"   , "}" + div )
+                            .replaceAll( "^:"   , ""  )
+                            .replaceAll( "="    , ":" )
+                            .replaceAll( "\\["  , "{" )
+                            .replaceAll( "]"    , "}" )
+                            + "{" + subsection.replaceAll( "\n\\s*(\\w)" , ",$1" ) + "}" );
 
         //------------------------------------------------------------------------------------------
-            } } return entries;
-        //------------------------------------------------------------------------------------------
-        } catch( IOException ex ) { ex.printStackTrace(); return null; } }
+            } }
+        //──────────────────────────────────────────────────────────────────────────────────────────
+        // Then we find all the item stacks that match the groups
+        //──────────────────────────────────────────────────────────────────────────────────────────
 
+            Set<String> IDs = new HashSet<>();
+
+        //------------------------------------------------------------------------------------------
+            for( String group : groups ) {
+        //------------------------------------------------------------------------------------------
+
+                String defSection = group.contains( div ) ? group.split( div )[0] : "{}" ;
+                String norSection = group.contains( div ) ? group.split( div )[1] : group;
+
+                Gson gson = new Gson();
+
+                Map<String, Object> json = new HashMap<>();
+                json.putAll( gson.fromJson( defSection , Map.class ) );
+                json.putAll( gson.fromJson( norSection , Map.class ) );
+
+            //--------------------------------------------------------------------------------------
+                json.replaceAll( ( s , o ) -> { try {
+                    //--------------------------------------------------------------------------------------
+                    if ( o instanceof Double ) {
+                        //----------------------------------------------------------------------------------
+
+                        return ( (Double) json.get( s ) ).intValue();
+
+                        //----------------------------------------------------------------------------------
+                    } if ( o instanceof Map ) {
+                        //----------------------------------------------------------------------------------
+
+                        return JsonToNBT.getTagFromJson( "" + gson.toJsonTree( o ) );
+
+                        //----------------------------------------------------------------------------------
+                    } return o;
+                    //--------------------------------------------------------------------------------------
+                } catch( NBTException ex ) { ex.printStackTrace(); return o; } } );
+            //--------------------------------------------------------------------------------------
+
+                List<Item> items = new ArrayList<>( ForgeRegistries.ITEMS.getValues() );
+
+            //--------------------------------------------------------------------------------------
+                if( json.containsKey( "Mod" ) ) {
+            //--------------------------------------------------------------------------------------
+
+                    items.removeIf( s -> !s.getRegistryName()
+                            .getResourceDomain()
+                            .equals( json.get( "Mod" ) ) );
+
+            //--------------------------------------------------------------------------------------
+                } if( json.containsKey( "Entry" ) ) {
+            //--------------------------------------------------------------------------------------
+
+                    items.removeIf( s -> !s.getRegistryName()
+                            .getResourcePath()
+                            .equals( json.get( "Entry" ) ) );
+
+            //--------------------------------------------------------------------------------------
+                } for( Item item : items ) {
+            //--------------------------------------------------------------------------------------
+
+                    CreativeTabs      tab = item.getCreativeTab();
+                    if( null == tab ) tab = CreativeTabs.CREATIVE_TAB_ARRAY[0];
+
+                //----------------------------------------------------------------------------------
+
+                    NonNullList<ItemStack> stacks = NonNullList.create();
+                    item.getSubItems( tab , stacks );
+
+                //----------------------------------------------------------------------------------
+                    if( json.containsKey( "Meta" ) ) {
+                //----------------------------------------------------------------------------------
+
+                        stacks.removeIf( s -> !json.get( "Meta" ).equals( s.getMetadata() ) );
+
+                //----------------------------------------------------------------------------------
+                    } if( json.containsKey( "NBT" ) ) {
+                //----------------------------------------------------------------------------------
+
+                        stacks.removeIf( s -> !s.hasTagCompound() );
+
+                        stacks.removeIf( s -> !s.getTagCompound()
+                                .toString()
+                                .replace( " " , "" )
+                                .toLowerCase()
+                                .equals( json.get( "NBT" )
+                                        .toString()
+                                        .replace( " " , "" )
+                                        .toLowerCase() ) );
+
+                //----------------------------------------------------------------------------------
+                    } for( ItemStack stack : stacks ) {
+                //----------------------------------------------------------------------------------
+
+                        Integer Width  = json.containsKey("Width" ) ? (int) json.get("Width" ) :  9;
+                        Integer Height = json.containsKey("Height") ? (int) json.get("Height") :  3;
+                        String  Mod    = stack.getItem().getRegistryName().getResourceDomain();
+                        String  Entry  = stack.getItem().getRegistryName().getResourcePath();
+                        Integer Meta   = stack.getMetadata();
+
+                    //------------------------------------------------------------------------------
+
+                        String ID = ""+ Width + Height + Mod + Entry + Meta +stack.getTagCompound();
+
+                    //------------------------------------------------------------------------------
+                        if( IDs.contains( ID ) ) continue;
+                    //------------------------------------------------------------------------------
+
+                        IDs.add( ID );
+
+                    //------------------------------------------------------------------------------
+
+                        NBTTagCompound compressions = new NBTTagCompound();
+
+                        compressions.setInteger( "Width"  , Width    );
+                        compressions.setInteger( "Height" , Height   );
+                        compressions.setString ( "Mod"    , Mod      );
+                        compressions.setString ( "Entry"  , Entry    );
+                        compressions.setInteger( "Meta"   , Meta     );
+
+                        if( stack.hasTagCompound() )
+                            compressions.setTag( "NBT" , stack.getTagCompound() );
+
+                        if( !stack.hasTagCompound() )
+                            compressions.setTag( "NBT" , new NBTTagCompound() );
+
+                    //------------------------------------------------------------------------------
+
+                        if( !stack.hasTagCompound() ) stack.setTagCompound( new NBTTagCompound() );
+
+                        stack.getTagCompound().setTag( "Compression" , compressions );
+
+                    //------------------------------------------------------------------------------
+
+                        entries.add( stack );
+
+        //------------------------------------------------------------------------------------------
+            } } }
+        //------------------------------------------------------------------------------------------
+        } catch( IOException ex ) { ex.printStackTrace(); } }
+
+    //==============================================================================================
+    // Usage
     //==============================================================================================
 
         public static Boolean getSettingsDarker() {
