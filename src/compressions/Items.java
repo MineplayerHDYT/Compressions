@@ -6,6 +6,7 @@
 
     import mcp.MethodsReturnNonnullByDefault;
     import net.minecraft.block.Block;
+    import net.minecraft.block.material.Material;
     import net.minecraft.creativetab.CreativeTabs;
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemBlock;
@@ -13,6 +14,7 @@
     import net.minecraft.nbt.JsonToNBT;
     import net.minecraft.nbt.NBTException;
     import net.minecraft.nbt.NBTTagCompound;
+    import net.minecraft.tileentity.TileEntityFurnace;
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
     import net.minecraftforge.event.RegistryEvent.Register;
@@ -299,6 +301,41 @@
             //--------------------------------------------------------------------------------------
             }
 
+        //==========================================================================================
+
+            @Override public int getItemBurnTime( ItemStack item ) {  return 0;/*
+            //------------------------------------------------------------------------------
+                Block AIR = net.minecraft.init.Blocks.AIR;
+            //------------------------------------------------------------------------------
+
+                ItemStack base = getRaw( item );
+
+                Integer height = item.getTagCompound().getInteger( "Height" );
+                Integer width  = item.getTagCompound().getInteger( "Width" );
+
+                Integer multi = (int) Math.pow( width , height + 1 );
+
+                Block    block    = Block.getBlockFromItem( base.getItem() );
+                Material material = block.getDefaultState().getMaterial();
+
+                if( AIR != block && !material.getCanBurn() ) return 0;
+                if( AIR == block && !TileEntityFurnace.isItemFuel( base ) ) return 0;
+
+                //------------------------------------------------------------------------------
+
+                Integer defBurnTime = TileEntityFurnace.getItemBurnTime( base );
+                Integer stmBurnTime = base.getItem().getItemBurnTime( base );
+
+                if( stmBurnTime >  0 ) return stmBurnTime * item.getCount() * multi;
+                else if( stmBurnTime == 0 ) return 0;
+                else if( 0 != defBurnTime ) return defBurnTime * item.getCount() * multi;
+
+                //------------------------------------------------------------------------------
+
+                return 300 * item.getCount() * multi;//*/
+
+                //------------------------------------------------------------------------------
+            }
         //==========================================================================================
         }
 

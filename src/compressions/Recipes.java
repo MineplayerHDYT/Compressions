@@ -42,6 +42,16 @@
         // Setup
         //==========================================================================================
 
+            public Compressed () {
+            //--------------------------------------------------------------------------------------
+                super( "Compression" , new ItemStack( Items.compressed ) , NonNullList.create() );
+            //--------------------------------------------------------------------------------------
+
+                this.setRegistryName( Base.modId , "compressed" );
+
+            //--------------------------------------------------------------------------------------
+            }
+
             public Compressed ( String group , ItemStack out , NonNullList<Ingredient> in ) {
             //--------------------------------------------------------------------------------------
                 super( group , out , in );
@@ -307,23 +317,23 @@
                 super(  CraftingHelper.getRecipe( content , context ).getGroup()        ,
                         CraftingHelper.getRecipe( content , context ).getRecipeOutput() ,
                         CraftingHelper.getRecipe( content , context ).getIngredients()  ); try {
-                    //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
 
                     ItemStack in = getIngredients().get( 0 ).getMatchingStacks()[0];
 
-                    //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
 
                     tags = in.getItem().getRegistryName().toString() + in.getMetadata();
 
-                    //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
                     if( !connected.containsKey( tags ) ) connected.put( tags , new ArrayList<>());
-                    //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
 
                     connected.get( tags ).add( this );
 
-                    //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
                     for( int i = 0; i < this.getIngredients().size(); i++ ) {
-                        //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
 
                         NBTTagCompound tag = JsonToNBT.getTagFromJson( content.get( "ingredients" )
                                 .getAsJsonArray()
@@ -564,7 +574,7 @@
 
                 if( stackInv.getItem().equals( net.minecraft.init.Items.AIR ) )
                     for( int i = 1; i < 9; i++ )
-                        if( !inv.getStackInSlot( i ).getItem().equals( net.minecraft.init.Items.AIR ) )
+                        if( !inv.getStackInSlot(i).getItem().equals(net.minecraft.init.Items.AIR) )
                             stackInv = inv.getStackInSlot( i );
 
             //----------------------------------------------------------------------------------
@@ -681,7 +691,7 @@
 
                 //----------------------------------------------------------------------------------
                 for( Compressed recipe : connected.get( this.tags ) ) {
-                    //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
 
                     if( recipe.equals( this ) ) continue;
 
@@ -694,7 +704,7 @@
 
                     if( tagInv.equals( tagAlt ) ) return recipe.getCraftingResult( inv );
 
-                    //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
                 }
                 //──────────────────────────────────────────────────────────────────────────────────
 
@@ -712,7 +722,7 @@
     // Controls
     //==============================================================================================
 
-        //public static Compressed compressed = new Compressed();
+        public static Compressed compressed = new Compressed();
 
     //==============================================================================================
     // Setup
@@ -720,7 +730,7 @@
 
         @SubscribeEvent public static void Register( Register<IRecipe> event ) {
         //------------------------------------------------------------------------------------------
-
+            /*
             NonNullList<ItemStack> items = NonNullList.create();
             Items.compressed.getSubItems( Items.compressed.getCreativeTab() , items );
 
@@ -754,7 +764,7 @@
                             NonNullList.withSize( width , Ingredient.fromStacks( in ) ) );
 
                     compr.setRegistryName( new ResourceLocation( Base.modId , id ) );
-                    event.getRegistry().register( compr );
+                    //event.getRegistry().register( compr );
 
                 //----------------------------------------------------------------------------------
 
@@ -767,7 +777,7 @@
                             NonNullList.withSize( 1 , Ingredient.fromStacks( in ) ) );
 
                     decom.setRegistryName( new ResourceLocation( Base.modId , "de" + id ) );
-                    event.getRegistry().register( decom );
+                    //event.getRegistry().register( decom );
 
             //--------------------------------------------------------------------------------------
                 } else {
@@ -802,7 +812,7 @@
                             NonNullList.withSize( width , Ingredient.fromStacks( in ) ) );
 
                     compr.setRegistryName( new ResourceLocation( Base.modId , id ) );
-                    event.getRegistry().register( compr );
+                    //event.getRegistry().register( compr );
 
                 //----------------------------------------------------------------------------------
 
@@ -815,12 +825,15 @@
                             NonNullList.withSize( 1 , Ingredient.fromStacks( in ) ) );
 
                     decom.setRegistryName( new ResourceLocation( Base.modId , "de" + id ) );
-                    event.getRegistry().register( decom );
+                    //event.getRegistry().register( decom );
 
             //--------------------------------------------------------------------------------------
                 }
         //------------------------------------------------------------------------------------------
-            }
+            }//*/
+
+            event.getRegistry().register( compressed );
+
         //------------------------------------------------------------------------------------------
         }
 

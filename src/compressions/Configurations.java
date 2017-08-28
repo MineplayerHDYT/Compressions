@@ -57,6 +57,7 @@
             if( new File( root + Entries ).exists() ) break init;
         //------------------------------------------------------------------------------------------
 
+            getSettingsDarker();
             Files.copy( Base.class.getResourceAsStream("/" + Entries) , Paths.get(root + Entries) );
 
         //------------------------------------------------------------------------------------------
