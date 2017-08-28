@@ -153,21 +153,21 @@
 
             //--------------------------------------------------------------------------------------
                 json.replaceAll( ( s , o ) -> { try {
-                    //--------------------------------------------------------------------------------------
+            //--------------------------------------------------------------------------------------
                     if ( o instanceof Double ) {
-                        //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
 
                         return ( (Double) json.get( s ) ).intValue();
 
-                        //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
                     } if ( o instanceof Map ) {
-                        //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
 
                         return JsonToNBT.getTagFromJson( "" + gson.toJsonTree( o ) );
 
-                        //----------------------------------------------------------------------------------
+                //----------------------------------------------------------------------------------
                     } return o;
-                    //--------------------------------------------------------------------------------------
+            //--------------------------------------------------------------------------------------
                 } catch( NBTException ex ) { ex.printStackTrace(); return o; } } );
             //--------------------------------------------------------------------------------------
 
@@ -244,25 +244,33 @@
 
                     //------------------------------------------------------------------------------
 
-                        NBTTagCompound compressions = new NBTTagCompound();
+                        NBTTagCompound tag = new NBTTagCompound();
 
-                        compressions.setInteger( "Width"  , Width    );
-                        compressions.setInteger( "Height" , Height   );
-                        compressions.setString ( "Mod"    , Mod      );
-                        compressions.setString ( "Entry"  , Entry    );
-                        compressions.setInteger( "Meta"   , Meta     );
+                        tag.setInteger( "Width"  , Width    );
+                        tag.setInteger( "Height" , Height   );
+                        tag.setString ( "Mod"    , Mod      );
+                        tag.setString ( "Entry"  , Entry    );
+                        tag.setInteger( "Meta"   , Meta     );
 
-                        if( stack.hasTagCompound() )
-                            compressions.setTag( "NBT" , stack.getTagCompound() );
+                    //------------------------------------------------------------------------------
 
                         if( !stack.hasTagCompound() )
-                            compressions.setTag( "NBT" , new NBTTagCompound() );
+                            tag.setTag( "NBT" , new NBTTagCompound() );
 
+                    //------------------------------------------------------------------------------
+                        if( stack.hasTagCompound() ) { try {
+                    //------------------------------------------------------------------------------
+
+                            tag.setTag( "NBT" , JsonToNBT.getTagFromJson( "" +
+                                    stack.getTagCompound() ) );
+
+                    //------------------------------------------------------------------------------
+                        } catch( NBTException ex ) { ex.printStackTrace(); } }
                     //------------------------------------------------------------------------------
 
                         if( !stack.hasTagCompound() ) stack.setTagCompound( new NBTTagCompound() );
 
-                        stack.getTagCompound().setTag( "Compression" , compressions );
+                        stack.getTagCompound().setTag( "Compression" , tag );
 
                     //------------------------------------------------------------------------------
 
