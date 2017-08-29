@@ -5,6 +5,7 @@
 //==================================================================================================
 
     import mcp.MethodsReturnNonnullByDefault;
+    import net.minecraft.block.Block;
     import net.minecraft.block.state.IBlockState;
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.renderer.block.model.*;
@@ -658,12 +659,24 @@
                                                 .handlePerspective( TransformType.GUI ).getLeft();
 
             //--------------------------------------------------------------------------------------
+                List<BakedQuad> old = new ArrayList<>(); try {
+            //--------------------------------------------------------------------------------------
 
-                List<BakedQuad>     old = model.getQuads( null , side , rand );
-                if( old.isEmpty() ) old = model.getQuads( null , null , rand );
+                                        old = model.getQuads( null , side , rand );
+                    if( old.isEmpty() ) old = model.getQuads( null , null , rand );
 
             //--------------------------------------------------------------------------------------
-                for( BakedQuad quad : old ) {
+                } catch( NullPointerException ex ) { try {
+            //--------------------------------------------------------------------------------------
+
+                    IBlockState state = Block.getBlockFromItem( stack.getItem() )
+                                             .getBlockState()
+                                             .getBaseState();
+
+                    old = model.getQuads( state , side , rand );
+
+            //--------------------------------------------------------------------------------------
+                } catch( NullPointerException ex2 ) {} } for( BakedQuad quad : old ) {
             //--------------------------------------------------------------------------------------
 
                     Integer color = colors.getColorFromItemstack( stack , quad.getTintIndex() );
@@ -2302,12 +2315,12 @@
             }
 
 //            CompressedBakedModel( ItemStack base , IModelState state ) {
-//            //--------------------------------------------------------------------------------------
+//            //------------------------------------------------------------------------------------
 //                super( Minecraft.getMinecraft()
 //                                .getRenderItem()
 //                                .getItemModelMesher()
 //                                .getItemModel( base ) , state );
-//            //--------------------------------------------------------------------------------------
+//            //------------------------------------------------------------------------------------
 //
 //                this.baseStack = base;
 //                this.baseModel = new PerspectiveMapWrapper( Minecraft.getMinecraft()
@@ -2316,7 +2329,7 @@
 //                                                                      .getItemModel( baseStack )
 //                                                           , state );
 //
-//            //--------------------------------------------------------------------------------------
+//            //------------------------------------------------------------------------------------
 //            }
 
         //==========================================================================================
@@ -2513,7 +2526,7 @@
 //
 //                    if( !this.quads.isEmpty() && Blocks.AIR.equals( block ) ) return this.quads;
 //
-//                //--------------------------------------------------------------------------------------
+//                //--------------------------------------------------------------------------------
 //
 //                    // 248, 36, 35
 //                    // 205, 92, 171

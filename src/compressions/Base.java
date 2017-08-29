@@ -29,7 +29,7 @@
 
         public static final String modId   = "compressions";
         public static final String name    = "Compressions";
-        public static final String version = "3.0.0";
+        public static final String version = "3.0.1";
 
     //==============================================================================================
         @Mod.Instance( modId )
