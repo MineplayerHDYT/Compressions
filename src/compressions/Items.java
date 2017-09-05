@@ -7,7 +7,9 @@
     import mcp.MethodsReturnNonnullByDefault;
     import net.minecraft.block.Block;
     import net.minecraft.block.material.Material;
+    import net.minecraft.block.state.IBlockState;
     import net.minecraft.creativetab.CreativeTabs;
+    import net.minecraft.entity.player.EntityPlayer;
     import net.minecraft.item.Item;
     import net.minecraft.item.ItemBlock;
     import net.minecraft.item.ItemStack;
@@ -15,8 +17,11 @@
     import net.minecraft.nbt.NBTException;
     import net.minecraft.nbt.NBTTagCompound;
     import net.minecraft.tileentity.TileEntityFurnace;
+    import net.minecraft.util.EnumFacing;
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.ResourceLocation;
+    import net.minecraft.util.math.BlockPos;
+    import net.minecraft.world.World;
     import net.minecraftforge.event.RegistryEvent.Register;
     import net.minecraftforge.fml.common.Mod;
     import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -28,6 +33,7 @@
     import javax.annotation.Nullable;
     import javax.annotation.ParametersAreNonnullByDefault;
     import java.util.ArrayList;
+    import java.util.HashMap;
     import java.util.List;
 
 //==================================================================================================
@@ -56,6 +62,51 @@
                 this.setRegistryName( Base.modId , ID );
                 this.setUnlocalizedName( ID );
 
+            //--------------------------------------------------------------------------------------
+            }
+
+        //==========================================================================================
+
+            @Override public boolean placeBlockAt(
+            //--------------------------------------------------------------------------------------
+                    ItemStack    stack  ,
+                    EntityPlayer player ,
+                    World        world  ,
+                    BlockPos     pos    ,
+                    EnumFacing   side   ,
+                    float        x      ,
+                    float        y      ,
+                    float        z      ,
+                    IBlockState  state
+            //--------------------------------------------------------------------------------------
+            ) {
+            //--------------------------------------------------------------------------------------
+
+                Integer id = world.provider.getDimension();
+
+                if( !Blocks.placed.containsKey( id ) ) Blocks.placed.put( id , new HashMap<>() );
+
+                Blocks.placed.get( id ).put( pos , stack );
+
+            //--------------------------------------------------------------------------------------
+
+                Blocks.Compressed.temp = stack;
+
+            //--------------------------------------------------------------------------------------
+                if( !world.isRemote ) {
+            //--------------------------------------------------------------------------------------
+
+                    Blocks.Data.Load( world ).markDirty();
+
+                //- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+                    state = state.getBlock().getExtendedState( state , world , pos );
+                    //world.setBlockState( pos , state , 11 );
+
+                    return super.placeBlockAt( stack, player, world, pos, side, x, y, z, state);
+
+            //--------------------------------------------------------------------------------------
+                } return false;
             //--------------------------------------------------------------------------------------
             }
 

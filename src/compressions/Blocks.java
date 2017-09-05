@@ -10,13 +10,16 @@
     import net.minecraft.block.properties.IProperty;
     import net.minecraft.block.state.BlockStateContainer;
     import net.minecraft.block.state.IBlockState;
+    import net.minecraft.client.Minecraft;
+    import net.minecraft.client.renderer.block.model.BakedQuad;
     import net.minecraft.creativetab.CreativeTabs;
-    import net.minecraft.entity.EntityLivingBase;
     import net.minecraft.item.ItemStack;
     import net.minecraft.nbt.NBTBase;
     import net.minecraft.nbt.NBTTagCompound;
     import net.minecraft.nbt.NBTTagList;
+    import net.minecraft.tileentity.TileEntity;
     import net.minecraft.util.BlockRenderLayer;
+    import net.minecraft.util.EnumFacing;
     import net.minecraft.util.NonNullList;
     import net.minecraft.util.math.BlockPos;
     import net.minecraft.world.IBlockAccess;
@@ -28,6 +31,7 @@
     import net.minecraftforge.common.property.IUnlistedProperty;
     import net.minecraftforge.event.RegistryEvent.Register;
     import net.minecraftforge.event.world.WorldEvent;
+    import net.minecraftforge.fml.client.registry.ClientRegistry;
     import net.minecraftforge.fml.common.Mod;
     import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
     import net.minecraftforge.fml.relauncher.Side;
@@ -35,8 +39,10 @@
 
 //==================================================================================================
 
+    import javax.annotation.Nullable;
     import javax.annotation.ParametersAreNonnullByDefault;
     import java.util.HashMap;
+    import java.util.List;
     import java.util.Map;
 
 //==================================================================================================
@@ -184,8 +190,13 @@
         public static class Stem extends Block {
 
         //==========================================================================================
+
+            public static ItemStack temp = null;
+
+        //==========================================================================================
         // Structure
         //==========================================================================================
+
 
             public static class UnlistedInteger implements IUnlistedProperty<Integer> {
 
@@ -230,6 +241,21 @@
             //======================================================================================
 
             }
+
+            public static class TEData extends TileEntity {
+
+            //======================================================================================
+
+                ItemStack stack;
+
+            //======================================================================================
+
+                TEData(ItemStack stack ) { this.stack = stack; }
+
+            //======================================================================================
+
+            }
+
 
         //==========================================================================================
         // Setup
@@ -313,31 +339,67 @@
         // In world tracking
         //==========================================================================================
 
-            public void onBlockPlacedBy (
+            @Nullable public static ItemStack getPlaced( @Nullable IBlockState state ) {
             //--------------------------------------------------------------------------------------
-                    World            world  ,
-                    BlockPos         pos    ,
-                    IBlockState      state  ,
-                    EntityLivingBase placer ,
-                    ItemStack        stack
-            //--------------------------------------------------------------------------------------
-            ) {
+                if( null == state || !( state instanceof IExtendedBlockState ) ) return null;
             //--------------------------------------------------------------------------------------
 
-                Integer id = world.provider.getDimension();
+                IExtendedBlockState extState = (IExtendedBlockState) state;
 
-                if( !Blocks.placed.containsKey( id ) ) Blocks.placed.put(id , new HashMap<>());
+                Integer posX = null;
+                Integer posY = null;
+                Integer posZ = null;
 
-                Blocks.placed.get( id ).put( pos , stack );
+                for( IUnlistedProperty prop : extState.getUnlistedNames() ) {
+                    if( prop.getName().equals("PosX") ) posX = (Integer) extState.getValue( prop );
+                    if( prop.getName().equals("PosY") ) posY = (Integer) extState.getValue( prop );
+                    if( prop.getName().equals("PosZ") ) posZ = (Integer) extState.getValue( prop );
+                }
 
             //--------------------------------------------------------------------------------------
-                if( !world.isRemote ) Data.Load( world ).markDirty();
+                if( null == posX || null == posY || null == posZ ) return null;
             //--------------------------------------------------------------------------------------
-                if( !world.isRemote ) super.onBlockPlacedBy( world , pos , state , placer , stack );
+
+                BlockPos pos = new BlockPos( posX , posY , posZ );
+
+            //--------------------------------------------------------------------------------------
+                if( null == Minecraft.getMinecraft().world ) return null;
+            //--------------------------------------------------------------------------------------
+
+                Integer dimID = Minecraft.getMinecraft().world.provider.getDimension();
+
+            //--------------------------------------------------------------------------------------
+                if( !Blocks.placed.containsKey( dimID ) ) return null;
+            //--------------------------------------------------------------------------------------
+
+                ItemStack stack = Blocks.placed.get( dimID ).getOrDefault( pos , null );
+
+            //--------------------------------------------------------------------------------------
+                return stack;
             //--------------------------------------------------------------------------------------
             }
 
-            public void breakBlock( World world , BlockPos pos , IBlockState state ) {
+            @Nullable public static ItemStack getPlaced( @Nullable BlockPos pos ) {
+            //--------------------------------------------------------------------------------------
+                if( null == Minecraft.getMinecraft().world ) return null;
+            //--------------------------------------------------------------------------------------
+
+                Integer dimID = Minecraft.getMinecraft().world.provider.getDimension();
+
+            //--------------------------------------------------------------------------------------
+                if( !Blocks.placed.containsKey( dimID ) ) return null;
+            //--------------------------------------------------------------------------------------
+
+                ItemStack stack = Blocks.placed.get( dimID ).getOrDefault( pos , null );
+
+            //--------------------------------------------------------------------------------------
+                return stack;
+            //--------------------------------------------------------------------------------------
+            }
+
+        //==========================================================================================
+
+            @Override public void breakBlock( World world , BlockPos pos , IBlockState state ) {
             //--------------------------------------------------------------------------------------
 
                 Integer id = world.provider.getDimension();
@@ -353,7 +415,6 @@
             //--------------------------------------------------------------------------------------
             }
 
-
         //==========================================================================================
         // Properties
         //==========================================================================================
@@ -363,6 +424,77 @@
                 return BlockRenderLayer.CUTOUT;
             //--------------------------------------------------------------------------------------
             }
+
+        //==========================================================================================
+
+            @Override public boolean hasTileEntity( IBlockState state ) {
+            //--------------------------------------------------------------------------------------
+             /*   org.lwjgl.input.Mouse.setGrabbed(false);
+            //--------------------------------------------------------------------------------------
+
+                boolean looped = false;
+
+                for( StackTraceElement element : Thread.currentThread().getStackTrace() ) {
+
+                    if( element.getClassName().startsWith( "compressions" ) )
+                        if( element.getMethodName().equals("hasTileEntity") )
+                            continue;
+
+                    if( element.getClassName().startsWith( "compressions" ) ) looped = true;
+                    if( element.getClassName().startsWith( "compressions" ) ) break;
+                }
+
+                ItemStack stack = getPlaced( state );
+
+                if( looped && null != temp ) stack = temp;
+
+            //--------------------------------------------------------------------------------------
+                if( null == stack ) return false;
+            //--------------------------------------------------------------------------------------
+
+                List<BakedQuad> quads = Models.Compressed.overrides
+                                              .handleItemState( null , stack , null , null )
+                                              .getQuads( state , EnumFacing.NORTH , 0 );
+
+                if( 2 == quads.size() )
+                    return true;
+
+            //--------------------------------------------------------------------------------------
+                return false;//*/ return true;
+            //--------------------------------------------------------------------------------------
+            }
+
+            @Override public TileEntity createTileEntity( World world , IBlockState state ) {
+            //--------------------------------------------------------------------------------------
+
+                boolean looped = false;
+
+                for( StackTraceElement element : Thread.currentThread().getStackTrace() ) {
+
+                    if( element.getClassName().startsWith( "compressions" ) )
+                        if( element.getMethodName().equals("hasTileEntity") )
+                            continue;
+
+                    if( element.getClassName().startsWith( "compressions" ) ) looped = true;
+                    if( element.getClassName().startsWith( "compressions" ) ) break;
+                }
+
+                ItemStack stack = getPlaced( state );
+
+                if( looped && null != temp ) stack = temp;
+
+                if( null == stack ) return null;
+
+                List<BakedQuad> quads = Models.Compressed.overrides
+                                              .handleItemState( null , stack , null , null )
+                                              .getQuads( state , EnumFacing.NORTH , 0 );
+
+                if( 2 == quads.size() ) return new TEData( getPlaced( state ) );
+
+                return null;
+            //--------------------------------------------------------------------------------------
+            }
+
 
         //==========================================================================================
         }
@@ -424,6 +556,9 @@
         //------------------------------------------------------------------------------------------
 
             event.getRegistry().register( Blocks.compressed );
+
+            ClientRegistry.registerTileEntity( Stem.TEData.class ,
+                    Blocks.compressed.getRegistryName().toString() , new Renderers.CmprTE() );
 
         //------------------------------------------------------------------------------------------
         }

@@ -8,6 +8,7 @@
     import net.minecraft.block.Block;
     import net.minecraft.block.state.IBlockState;
     import net.minecraft.client.Minecraft;
+    import net.minecraft.client.renderer.BlockModelRenderer;
     import net.minecraft.client.renderer.block.model.*;
     import net.minecraft.client.renderer.block.model.ItemCameraTransforms.TransformType;
     import net.minecraft.client.renderer.color.ItemColors;
@@ -216,11 +217,6 @@
                 if( !quads.containsKey( side ) ) return fallback.getQuads( state , side , rand );
 
             //--------------------------------------------------------------------------------------
-
-                // Napraviti da se gleda da li je poziv iz RenderItem.renderModel
-                //      Thread.currentThread().getStackTrace();
-                // Ako je, vratiti prazni niz te prije vraćanja nacrtati predmet baš kao što bi
-                // RenderItem.renderModel nacrtao
 
                 return quads.get( side );
 
@@ -691,6 +687,8 @@
             // Items with a built in renderer
             //--------------------------------------------------------------------------------------
 
+                return quads;/*
+
                 String name = stack.getUnlocalizedName();
 
             //--------------------------------------------------------------------------------------
@@ -701,7 +699,7 @@
 
                     square = Retexture( square , "shield" );
 
-                    quads.add( square );
+                    textures.add( square );
 
             //--------------------------------------------------------------------------------------
                 }
@@ -718,7 +716,7 @@
                     if( name.contains( "creeper"  ) ) square = Retexture( square , "head_creeper" );
                     if( name.contains( "dragon"   ) ) square = Retexture( square , "head_dragon"  );
 
-                    quads.add( square );
+                    textures.add( square );
 
             //--------------------------------------------------------------------------------------
                 }
@@ -740,7 +738,7 @@
                     if( side == EnumFacing.NORTH ) if( name.startsWith( "tile.trapped_chest" ) )
                         square = Retexture( square , "trapped_chest_front" );
 
-                    quads.add( square );
+                    textures.add( square );
 
             //--------------------------------------------------------------------------------------
                 }
@@ -761,7 +759,7 @@
 
                     square = Colorize( square , color.getColorValue() );
 
-                    quads.add( square ); break;
+                    textures.add( square ); break;
 
             //--------------------------------------------------------------------------------------
                 } } }
@@ -774,11 +772,11 @@
             //--------------------------------------------------------------------------------------
 
                     square = Retexture( square , "bed_frame"  );
-                    quads.add( square );
+                    textures.add( square );
 
                     square = Retexture( square , "bed_overlay"  );
                     square = Colorize( square , color.getColorValue() );
-                    quads.add( square ); break;
+                    textures.add( square ); break;
 
             //--------------------------------------------------------------------------------------
                 } } }
@@ -791,14 +789,14 @@
             //--------------------------------------------------------------------------------------
 
                     square = Retexture( square , "banner"  );
-                    quads.add( square );
+                    textures.add( square );
 
                     square = Retexture( square , "banner_layout"  );
                     square = Colorize( square , color.getColorValue() );
-                    quads.add( square ); break;
+                    textures.add( square ); break;
 
             //--------------------------------------------------------------------------------------
-                } } } return quads;
+                } } } return textures;//*/
             //--------------------------------------------------------------------------------------
             }
 
@@ -835,6 +833,10 @@
 
 
         public static class Compressed extends Stem {
+
+        //==========================================================================================
+
+            public ItemStack raw;
 
         //==========================================================================================
 
@@ -876,6 +878,10 @@
             Compressed( ItemStack stack ) {
             //--------------------------------------------------------------------------------------
                 super( Compressed.class ); if( null == stack ) return;
+            //--------------------------------------------------------------------------------------
+
+                this.raw = Items.Compressed.getRaw( stack );
+
             //--------------------------------------------------------------------------------------
 
                 NBTTagCompound compression = stack.getTagCompound();
@@ -959,6 +965,59 @@
 
             //--------------------------------------------------------------------------------------
                 }
+            //--------------------------------------------------------------------------------------
+            }
+
+        //==========================================================================================
+
+            @Override public List<BakedQuad> getQuads (
+            //--------------------------------------------------------------------------------------
+                    @Nullable IBlockState state ,
+                    @Nullable EnumFacing  side  ,
+                              long        rand
+            //--------------------------------------------------------------------------------------
+            ) { List<BakedQuad> quads = super.getQuads( state , side , rand );
+            //--------------------------------------------------------------------------------------
+
+                if( 2 != quads.size() ) return quads;
+
+            //--------------------------------------------------------------------------------------
+            // Override rendering when unable to get BakedQuads like with chest or bed
+            //--------------------------------------------------------------------------------------
+
+                String item  = "net.minecraft.client.renderer.RenderItem";
+                String block = "net.minecraftforge.client.model.pipeline.ForgeBlockModelRenderer";
+
+                String itemMethod  = "renderModel";
+                String blockMethod = "render";
+
+            //--------------------------------------------------------------------------------------
+
+                StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+
+            //--------------------------------------------------------------------------------------
+                if( 3 > trace.length ) return quads;
+            //--------------------------------------------------------------------------------------
+
+                String className  = trace[2].getClassName();
+                String methodName = trace[2].getMethodName();
+
+                Boolean inventory = className.equals( item  ) && methodName.equals( itemMethod  );
+                Boolean world     = className.equals( block ) && methodName.equals( blockMethod );
+
+            //--------------------------------------------------------------------------------------
+                if( !inventory && !world ) return quads;
+            //--------------------------------------------------------------------------------------
+
+                ItemStack stack = this.raw;
+
+                Stem placed = getPlaced( state );
+                if( null != placed ) stack = ( (Compressed) placed ).raw;
+
+                if( Renderers.Compressed( stack , quads ) ) return new ArrayList<>();
+
+            //--------------------------------------------------------------------------------------
+                return quads;
             //--------------------------------------------------------------------------------------
             }
 
@@ -1099,7 +1158,7 @@
             public static IBakedModel base;
         //==========================================================================================
 
-            public Map<EnumFacing , List<BakedQuad>> quads = new HashMap<>();
+            public Map<EnumFacing , List<BakedQuad>> textures = new HashMap<>();
 
             public List<BakedQuad> allQuads = new ArrayList<>();
 
@@ -1623,7 +1682,7 @@
             //--------------------------------------------------------------------------------------
             }
 
-            public static Color AvgC( ItemStack stack , List<BakedQuad> quads ) {
+            public static Color AvgC( ItemStack stack , List<BakedQuad> textures ) {
             //--------------------------------------------------------------------------------------
                 ItemColors colors = Minecraft.getMinecraft().getItemColors();
             //--------------------------------------------------------------------------------------
@@ -1631,7 +1690,7 @@
                 Color avg = null;
 
             //--------------------------------------------------------------------------------------
-                for( BakedQuad quad : quads ) {
+                for( BakedQuad quad : textures ) {
             //--------------------------------------------------------------------------------------
 
                     Integer base = colors.getColorFromItemstack( stack , quad.getTintIndex() );
@@ -1697,7 +1756,7 @@
                 for( EnumFacing side : EnumFacing.values() ) {
             //--------------------------------------------------------------------------------------
 
-                    List<BakedQuad> quads  = new ArrayList<>();
+                    List<BakedQuad> textures  = new ArrayList<>();
                     BakedQuad       square = Compressed.base.getQuads( null , side , rand ).get(0);
 
                 //----------------------------------------------------------------------------------
@@ -1914,7 +1973,7 @@
                               back = ColorQ( back   , avgC   );
                               back = PushQ ( back   , -0.001f );
 
-                    quads.add( back );
+                    textures.add( back );
 
                     for( int i = 0; i < oldQuads.size(); i++ ) {
                         BakedQuad quad = oldQuads.get( i );
@@ -1928,10 +1987,10 @@
                         int G = (color >> 8) & 255;
                         int B = (color >> 0) & 255;
 
-                        //quads.add( TurnQ( Colorize( quad , new Color( R , G , B , 255 ) ) , side) );
-                        //quads.add( TurnQ( quad , side) );
+                        //textures.add( TurnQ( Colorize( quad , new Color( R , G , B , 255 ) ) , side) );
+                        //textures.add( TurnQ( quad , side) );
 
-                        if( !empty ) quads.add(
+                        if( !empty ) textures.add(
                                         ColorQ(
                                             RetexQ( square ,
                                                     quad,
@@ -1941,23 +2000,23 @@
                                         )
                                     );
 
-                        if( empty ) quads.add( quad );
+                        if( empty ) textures.add( quad );
 
 
                         //if( stack.getItem() instanceof ItemBlock )
-                        //    quads.add( Colorize( quad , new Color( R , G , B , 255 ) ) );
+                        //    textures.add( Colorize( quad , new Color( R , G , B , 255 ) ) );
 
                         //if( !(stack.getItem() instanceof ItemBlock) )
-                        //    quads.add( Colorize( Retexture( square , quad) , new Color( R , G ,
+                        //    textures.add( Colorize( Retexture( square , quad) , new Color( R , G ,
                         //B , 255 )));
 
 
                     }
 
-                    //quads.add( PushQ( Retexture( square , "frame" + height ) , 0.001f ) );
+                    //textures.add( PushQ( Retexture( square , "frame" + height ) , 0.001f ) );
 
-                    this.quads.put( side , quads );
-                    this.allQuads.addAll( quads );
+                    this.textures.put( side , textures );
+                    this.allQuads.addAll( textures );
 
             //--------------------------------------------------------------------------------------
                 }
@@ -2111,10 +2170,10 @@
                         if( this.allQuads.isEmpty() )
                             return this.base.getQuads( state , side , rand );
 
-                if( !this.quads.containsKey( side ) )
+                if( !this.textures.containsKey( side ) )
                     return this.base.getQuads( state , side , rand );
 
-                return this.quads.get( side );
+                return this.textures.get( side );
 
             //--------------------------------------------------------------------------------------
             }
@@ -2297,7 +2356,7 @@
             public ItemStack   baseStack;
             public IBakedModel baseModel;
 
-            public List<BakedQuad> quads = new ArrayList<>();
+            public List<BakedQuad> textures = new ArrayList<>();
 
             public Map<EnumFacing , List<BakedQuad>> sides = new HashMap<>();
 
@@ -2336,7 +2395,7 @@
 
             public List<BakedQuad> getItemQuads ( long rand ) {
             //--------------------------------------------------------------------------------------
-                if( !this.quads.isEmpty() ) return this.quads;
+                if( !this.textures.isEmpty() ) return this.textures;
             //--------------------------------------------------------------------------------------
 
                 IBakedModel model = ForgeHooksClient.handleCameraTransforms(
@@ -2368,7 +2427,7 @@
                                                      , quad.getFormat());
 
                 //------------------------------------------------------------------------------
-                    this.quads.add(newQuad);
+                    this.textures.add(newQuad);
                 //------------------------------------------------------------------------------
 
                     if( -1 == color ) continue;
@@ -2405,7 +2464,7 @@
                         s += elem.getSize();
 
             //--------------------------------------------------------------------------------------
-                } } return this.quads;
+                } } return this.textures;
             //--------------------------------------------------------------------------------------
             }
 
@@ -2496,7 +2555,7 @@
                     this.sides.put( side , newQuads );
 
             //----------------------------------------------------------------------------------
-                return this.quads;
+                return this.textures;
             //----------------------------------------------------------------------------------
             }
 
@@ -2524,7 +2583,7 @@
 
 //                    Block block = Block.getBlockFromItem( this.baseStack.getItem() );
 //
-//                    if( !this.quads.isEmpty() && Blocks.AIR.equals( block ) ) return this.quads;
+//                    if( !this.textures.isEmpty() && Blocks.AIR.equals( block ) ) return this.textures;
 //
 //                //--------------------------------------------------------------------------------
 //
@@ -2564,7 +2623,7 @@
 //                                                         , quad.getFormat() );
 //
 //                    //------------------------------------------------------------------------------
-//                        this.quads.add( newQuad );
+//                        this.textures.add( newQuad );
 //                    //------------------------------------------------------------------------------
 //
 //                        if( -1 == color ) continue;
@@ -2609,7 +2668,7 @@
 //                    }
 //                //----------------------------------------------------------------------------------
 //
-//                    return this.quads;
+//                    return this.textures;
                     //return model.getQuads( block.getDefaultState() , side , rand );
 
             //--------------------------------------------------------------------------------------
