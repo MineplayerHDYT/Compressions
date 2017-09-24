@@ -859,7 +859,14 @@
 
             public static void renderGUI( @Nullable Entry entry , TransformType transform ) {
             //--------------------------------------------------------------------------------------
-                Start(); bindDefTex();
+                Start();
+            //--------------------------------------------------------------------------------------
+
+                try  { Tessellator.getInstance().getBuffer().finishDrawing(); }
+                catch( Exception ignored ) {}
+
+            //--------------------------------------------------------------------------------------
+                bindDefTex();
             //--------------------------------------------------------------------------------------
 
                 Integer display = null;
