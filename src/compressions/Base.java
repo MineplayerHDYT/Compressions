@@ -696,16 +696,16 @@
             //══════════════════════════════════════════════════════════════════════════════════════
             // Eat a number
             //══════════════════════════════════════════════════════════════════════════════════════
-                for( int end = 0; end < reduced.length(); end++ ) {
+                Integer pos = 0; for( ; pos < reduced.length(); pos++ ) {
             //--------------------------------------------------------------------------------------
 
-                    ch = reduced.charAt( end );
+                    ch = reduced.charAt( pos );
 
-                    if( !Character.isDigit( ch ) ) reduced = reduced.substring( end );
+                    if( !Character.isDigit( ch ) ) reduced = reduced.substring( pos );
                     if( !Character.isDigit( ch ) ) break;
 
             //--------------------------------------------------------------------------------------
-                }
+                } if( pos == reduced.length() ) reduced = reduced.substring( pos );
             //══════════════════════════════════════════════════════════════════════════════════════
             // Extract and return a number
             //══════════════════════════════════════════════════════════════════════════════════════
@@ -762,30 +762,32 @@
             //══════════════════════════════════════════════════════════════════════════════════════
             // Eat a word
             //══════════════════════════════════════════════════════════════════════════════════════
-                if( !quoted ) { for( int end = 0; end < reduced.length(); end++ ) {
+                if( !quoted ) { Integer pos = 0; for( ; pos < reduced.length(); pos++ ) {
             //--------------------------------------------------------------------------------------
 
-                    Character ch = reduced.charAt( end );
+                    Character ch = reduced.charAt( pos );
 
-                    if( !Character.isJavaIdentifierPart( ch ) ) reduced = reduced.substring( end );
+                    if( !Character.isJavaIdentifierPart( ch ) ) reduced = reduced.substring( pos );
                     if( !Character.isJavaIdentifierPart( ch ) ) break;
 
+            //--------------------------------------------------------------------------------------
+                } if( pos == reduced.length() ) reduced = reduced.substring( pos );
             //══════════════════════════════════════════════════════════════════════════════════════
             // Eat quoted text
             //══════════════════════════════════════════════════════════════════════════════════════
-                } } else { for( int end = 1; end < reduced.length(); end++ ) {
+                } else { Integer pos = 1; for( ; pos < reduced.length(); pos++ ) {
             //--------------------------------------------------------------------------------------
 
-                    if( reduced.substring( end ).startsWith( "\\\"" ) ) { end++; continue; }
-                    if( reduced.substring( end ).startsWith( "\\\'" ) ) { end++; continue; }
+                    if( reduced.substring( pos ).startsWith( "\\\"" ) ) { pos++; continue; }
+                    if( reduced.substring( pos ).startsWith( "\\\'" ) ) { pos++; continue; }
 
-                    if( quote == reduced.charAt( end ) ) depth--;
+                    if( quote == reduced.charAt( pos ) ) depth--;
 
-                    if( 0 == depth ) reduced = reduced.substring( end + 1 );
+                    if( 0 == depth ) reduced = reduced.substring( pos + 1 );
                     if( 0 == depth ) break;
 
             //--------------------------------------------------------------------------------------
-                } }
+                } if( pos == reduced.length() ) reduced = reduced.substring( pos + 1 ); }
             //══════════════════════════════════════════════════════════════════════════════════════
             // Extract and return a word or quoted text
             //══════════════════════════════════════════════════════════════════════════════════════
@@ -839,17 +841,17 @@
             //══════════════════════════════════════════════════════════════════════════════════════
             // Eat a JSON BLOCK
             //══════════════════════════════════════════════════════════════════════════════════════
-                for( int end = 1; end < reduced.length(); end++ ) {
+                Integer pos = 1; for( ; pos < reduced.length(); pos++ )  {
             //--------------------------------------------------------------------------------------
 
-                    if( '{' == reduced.charAt( end ) ) depth++;
-                    if( '}' == reduced.charAt( end ) ) depth--;
+                    if( '{' == reduced.charAt( pos ) ) depth++;
+                    if( '}' == reduced.charAt( pos ) ) depth--;
 
-                    if( 0 == depth ) reduced = reduced.substring( end + 1 );
+                    if( 0 == depth ) reduced = reduced.substring( pos + 1 );
                     if( 0 == depth ) break;
 
             //--------------------------------------------------------------------------------------
-                }
+                } if( pos == reduced.length() ) reduced = reduced.substring( pos + 1 );
             //══════════════════════════════════════════════════════════════════════════════════════
             // Extract and return a JSON BLOCK
             //══════════════════════════════════════════════════════════════════════════════════════
@@ -1183,6 +1185,8 @@
             //--------------------------------------------------------------------------------------
                 while( !content.value.isEmpty() ) {
             //--------------------------------------------------------------------------------------
+
+                    content.value = content.value + " ";
 
                     List<K> values = getEntries( content , clazz );
 
