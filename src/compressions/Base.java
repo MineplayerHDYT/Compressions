@@ -1607,7 +1607,7 @@
                                                                    , entry.getRawModel() );
 
             //--------------------------------------------------------------------------------------
-                GlStateManager.disableRescaleNormal();
+               GlStateManager.disableRescaleNormal();
             //--------------------------------------------------------------------------------------
 
                 Integer texture = GlStateManager.glGetInteger( GL11.GL_TEXTURE_BINDING_2D );
