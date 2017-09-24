@@ -85,7 +85,7 @@
 
         public static final String modId   = "compressions";
         public static final String name    = "Compressions";
-        public static final String version = "4.0.3";
+        public static final String version = "4.0.4";
 
     //==============================================================================================
         @Mod.Instance( modId )
@@ -1477,14 +1477,14 @@
                 if( started ) return; started = true;
             //--------------------------------------------------------------------------------------
 
-                BufferBuilder        buffer = Tessellator.getInstance().getBuffer();
+            /*    BufferBuilder        buffer = Tessellator.getInstance().getBuffer();
                 Class<BufferBuilder> clazz  = BufferBuilder.class;
 
                 draw = ReflectionHelper.getPrivateValue( clazz , buffer, "isDrawing"    );
                 mode = ReflectionHelper.getPrivateValue( clazz , buffer, "drawMode"     );
                 type = ReflectionHelper.getPrivateValue( clazz , buffer, "vertexFormat" );
 
-                if( draw ) buffer.finishDrawing();
+                if( draw ) buffer.finishDrawing();//*/
 
             //--------------------------------------------------------------------------------------
 
@@ -1543,9 +1543,9 @@
 
             //--------------------------------------------------------------------------------------
 
-                BufferBuilder buffer = Tessellator.getInstance().getBuffer();
+            /*    BufferBuilder buffer = Tessellator.getInstance().getBuffer();
 
-                if( draw ) buffer.begin( mode , type );
+                if( draw ) buffer.begin( mode , type );//*/
 
             //--------------------------------------------------------------------------------------
                 started = false;

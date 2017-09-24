@@ -15,6 +15,7 @@
     import net.minecraft.client.renderer.block.model.ModelResourceLocation;
     import net.minecraft.client.renderer.texture.TextureAtlasSprite;
     import net.minecraft.client.renderer.texture.TextureMap;
+    import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
     import net.minecraft.client.renderer.vertex.VertexFormat;
     import net.minecraft.creativetab.CreativeTabs;
     import net.minecraft.entity.EntityLivingBase;
@@ -937,6 +938,11 @@
                 GlStateManager.translate( -0.5f , -0.5f , -0.5f );
 
             //--------------------------------------------------------------------------------------
+
+                try  { Tessellator.getInstance().getBuffer().begin(7, DefaultVertexFormats.ITEM); }
+                catch( Exception ignored ) {}
+
+            //--------------------------------------------------------------------------------------
                 End( false );
             //--------------------------------------------------------------------------------------
             }
@@ -944,6 +950,11 @@
             public static void renderNBT( @Nullable Entry entry , TransformType transform ) {
             //--------------------------------------------------------------------------------------
                 Start();
+            //--------------------------------------------------------------------------------------
+
+                try  { Tessellator.getInstance().getBuffer().finishDrawing(); }
+                catch( Exception ignored ) {}
+
             //--------------------------------------------------------------------------------------
 
                 Float   scale = 0.7f;
@@ -981,6 +992,11 @@
             //--------------------------------------------------------------------------------------
 
                 GlStateManager.translate( -0.5f , -0.5f , -0.5f );
+
+            //--------------------------------------------------------------------------------------
+
+                try  { Tessellator.getInstance().getBuffer().begin(7, DefaultVertexFormats.ITEM); }
+                catch( Exception ignored ) {}
 
             //--------------------------------------------------------------------------------------
                 End( false );
