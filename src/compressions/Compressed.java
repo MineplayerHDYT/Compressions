@@ -48,6 +48,8 @@
     import javax.annotation.Nullable;
     import javax.annotation.ParametersAreNonnullByDefault;
     import java.io.File;
+    import java.io.IOException;
+    import java.nio.file.Files;
     import java.nio.file.Paths;
     import java.util.*;
     import java.util.function.Function;
@@ -261,6 +263,18 @@
             //══════════════════════════════════════════════════════════════════════════════════════
             // Load default compressed entries groups (From the entries file)
             //══════════════════════════════════════════════════════════════════════════════════════
+
+            //--------------------------------------------------------------------------------------
+                if( !entries.exists() ) try {
+            //--------------------------------------------------------------------------------------
+
+                    Files.copy( Base.class.getResourceAsStream( "/" + entries.getName() )
+                              , entries.toPath() );
+
+            //--------------------------------------------------------------------------------------
+                } catch ( IOException ignored ) { return new HashSet<>(); }
+            //--------------------------------------------------------------------------------------
+
 
                 Set<Entry> global = Parse( entries , Entry.class );
 
