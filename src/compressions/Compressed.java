@@ -639,14 +639,18 @@
         @SubscribeEvent public static void onTextureStitch( TextureStitchEvent.Pre event ) {
         //------------------------------------------------------------------------------------------
 
-            event.getMap().registerSprite( new ResourceLocation( Base.modId + "_textures"
+            event.getMap().registerSprite( new ResourceLocation( Base.modId, "blocks/side" ) );
+            event.getMap().registerSprite( new ResourceLocation( Base.modId, "blocks/frame" ) );
+            event.getMap().registerSprite( new ResourceLocation( Base.modId, "blocks/frame2" ) );
+
+        /*    event.getMap().registerSprite( new ResourceLocation( Base.modId + "_textures"
                                                                , "side" ) );
 
             event.getMap().registerSprite( new ResourceLocation( Base.modId + "_textures"
                                                                , "frame" ) );
 
             event.getMap().registerSprite( new ResourceLocation( Base.modId + "_textures"
-                                                               , "frame2" ) );
+                                                               , "frame2" ) );//*/
 
         //------------------------------------------------------------------------------------------
         }
@@ -676,7 +680,8 @@
 
             //--------------------------------------------------------------------------------------
 
-                ResourceLocation rl = new ResourceLocation( Base.modId + "_textures" , texture );
+                ResourceLocation rl = new ResourceLocation( Base.modId , "blocks/" + texture );
+            //    ResourceLocation rl = new ResourceLocation( Base.modId + "_textures" , texture );
                 TextureAtlasSprite sprite = Minecraft.getMinecraft()
                                                      .getTextureMapBlocks()
                                                      .getAtlasSprite( rl.toString() );

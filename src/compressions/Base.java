@@ -83,7 +83,7 @@
 
         public static final String modId   = "compressions";
         public static final String name    = "Compressions";
-        public static final String version = "4.0.0";
+        public static final String version = "4.0.1";
 
     //==============================================================================================
         @Mod.Instance( modId )
@@ -226,7 +226,9 @@
 
     //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-        static /* Register the resource pack */ { RegisterResourcePacks(); }
+        static /* Register the resource pack */ {
+        //    RegisterResourcePacks();
+        }
 
     /*==============================================================================================
     // Entry section
