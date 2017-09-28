@@ -194,9 +194,11 @@
 
             public Integer getColor() {
             //--------------------------------------------------------------------------------------
+                Integer height = null == this.Height ? 0 : this.Height;
+            //--------------------------------------------------------------------------------------
 
                 Integer size = EnumDyeColor.values().length;
-                Integer dye  = EnumDyeColor.byDyeDamage( ( 1 + Height ) % size ).getColorValue();
+                Integer dye  = EnumDyeColor.byDyeDamage( ( 1 + height ) % size ).getColorValue();
 
             //--------------------------------------------------------------------------------------
                 return ( dye << 8 ) + 0xFF;
