@@ -12,9 +12,7 @@
     import net.minecraft.block.material.Material;
     import net.minecraft.block.state.IBlockState;
     import net.minecraft.client.Minecraft;
-    import net.minecraft.client.renderer.BufferBuilder;
-    import net.minecraft.client.renderer.GlStateManager;
-    import net.minecraft.client.renderer.Tessellator;
+    import net.minecraft.client.renderer.*;
     import net.minecraft.client.renderer.block.model.IBakedModel;
     import net.minecraft.client.renderer.block.model.ItemCameraTransforms.TransformType;
     import net.minecraft.client.renderer.block.model.ItemOverrideList;
@@ -85,7 +83,7 @@
 
         public static final String modId   = "compressions";
         public static final String name    = "Compressions";
-        public static final String version = "4.0.4";
+        public static final String version = "4.0.5";
 
     //==============================================================================================
         @Mod.Instance( modId )
@@ -200,27 +198,20 @@
                 if ( listType instanceof ParameterizedType ) {
             //--------------------------------------------------------------------------------------
 
-                    String name = "net.minecraft.client.resources.IResourcePack";
-                    Type elementType = ( (ParameterizedType) listType ).getActualTypeArguments()[0];
+                    List<IResourcePack> defaultResourcePacks;
 
-                //----------------------------------------------------------------------------------
-                    if( elementType.getTypeName().equals( name ) ) {
-                //----------------------------------------------------------------------------------
+                    try  { defaultResourcePacks = (List) field.get( Minecraft.getMinecraft() ); }
+                    catch( Exception e ) { continue; }
 
-                        List defaultResourcePacks;
+                    defaultResourcePacks.add( new ResourcePack() );
 
-                        try  { defaultResourcePacks = (List)field.get( Minecraft.getMinecraft() ); }
-                        catch( IllegalAccessException e ) { continue; }
+                    try  { field.set( Minecraft.getMinecraft() , defaultResourcePacks ); }
+                    catch( Exception e ) { continue; }
 
-                        defaultResourcePacks.add( new ResourcePack() );
-
-                        try  { field.set( Minecraft.getMinecraft() , defaultResourcePacks ); }
-                        catch( IllegalAccessException e ) { continue; }
+                    return;
 
         //------------------------------------------------------------------------------------------
-            } } }
-        //------------------------------------------------------------------------------------------
-
+            } }
         //------------------------------------------------------------------------------------------
 
 //            String textureName = "entitytest.png";
@@ -1557,27 +1548,12 @@
             public static void bindDefTex() {
             //--------------------------------------------------------------------------------------
 
-                if( null != defTexture ) GL11.glBindTexture( GL11.GL_TEXTURE_2D , defTexture );
-                if( null != defTexture ) return;
-
-            //--------------------------------------------------------------------------------------
-                Map<ResourceLocation, ITextureObject> map;
-            //--------------------------------------------------------------------------------------
-
-                TextureManager        manag = Minecraft.getMinecraft().getTextureManager();
-                Class<TextureManager> clazz = TextureManager.class;
+                TextureManager manager = Minecraft.getMinecraft().getTextureManager();
+                ITextureObject defTex  = manager.getTexture( TextureMap.LOCATION_BLOCKS_TEXTURE );
 
             //--------------------------------------------------------------------------------------
 
-                map = ReflectionHelper.getPrivateValue( clazz , manag , "mapTextureObjects" );
-
-                ITextureObject itextureobject = map.get( TextureMap.LOCATION_BLOCKS_TEXTURE );
-
-            //--------------------------------------------------------------------------------------
-                defTexture = itextureobject.getGlTextureId();
-            //--------------------------------------------------------------------------------------
-
-                GL11.glBindTexture( GL11.GL_TEXTURE_2D , itextureobject.getGlTextureId() );
+                GL11.glBindTexture( GL11.GL_TEXTURE_2D , defTex.getGlTextureId() );
 
             //--------------------------------------------------------------------------------------
             }

@@ -31,6 +31,7 @@
     import net.minecraft.util.math.BlockPos;
     import net.minecraft.world.World;
     import net.minecraftforge.client.ForgeHooksClient;
+    import net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent;
     import net.minecraftforge.client.event.ModelRegistryEvent;
     import net.minecraftforge.client.event.TextureStitchEvent;
     import net.minecraftforge.client.model.IModel;
